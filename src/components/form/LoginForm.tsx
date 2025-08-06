@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageTitle from "@/components/ui/PageTitle";
+import PageContainer from "../container/PageContainer";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -14,23 +15,26 @@ const LoginForm = () => {
   const router = useRouter();
 
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
       alert("로그인 실패: " + error.message);
     } else {
-      setTimeout(() => {
-        router.refresh();
-        router.push("/dashboard/table");
-      }, 300);
+      if (data.session) {
+        supabase.auth.onAuthStateChange((event) => {
+          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            router.push("/dashboard");
+          }
+        });
+      }
     }
   };
 
   return (
-    <div className=" mt-10 flex flex-col gap-5">
-      <PageTitle title="login" />
+    <PageContainer>
+      <PageTitle title="로그인" />
       <div className="space-y-4">
         <InputText
           label="id"
@@ -62,7 +66,7 @@ const LoginForm = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

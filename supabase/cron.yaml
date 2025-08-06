@@ -1,0 +1,6 @@
+# cron.yaml
+version: v1
+jobs:
+  calculate-vacation-daily:
+    schedule: "0 0 * * *" # 매일 자정
+    endpoint: calculateVacation

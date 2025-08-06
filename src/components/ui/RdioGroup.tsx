@@ -1,4 +1,3 @@
-// components/ui/RadioGroup.tsx
 "use client";
 
 import React from "react";
@@ -15,28 +14,28 @@ interface RadioGroupProps<T> {
   onChange: (value: T) => void;
 }
 
-function RadioGroup<T extends string>({
+function RadioGroup<T extends string | null>({
   name,
   options,
   selected,
   onChange,
 }: RadioGroupProps<T>) {
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 flex-col xxs:flex-row">
       {options.map((option) => (
         <label
           key={option.value}
-          className="flex items-center space-x-1 cursor-pointer"
+          className="flex items-center space-x-2 cursor-pointer"
         >
           <input
             type="radio"
             name={name}
-            value={option.value}
+            value={String(option.value)}
             checked={selected === option.value}
             onChange={() => onChange(option.value)}
             className="accent-blue-500"
           />
-          <span className="text-sm">{option.label}</span>
+          <p>{option.label}</p>
         </label>
       ))}
     </div>

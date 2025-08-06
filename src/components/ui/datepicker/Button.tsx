@@ -11,7 +11,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "h-10 w-full rounded-md bg-gray-50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1  items-center justify-center rounded-md  disabled:pointer-events-none";
+      "h-10 w-full rounded-md bg-gray-50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1  items-center rounded-md  disabled:pointer-events-none";
 
     const disabledStyles =
       "disabled:opacity-70 disabled:cursor-not-allowed disabled:border-gray-400 disabled:bg-gray-100";

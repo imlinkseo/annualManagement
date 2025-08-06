@@ -3,6 +3,7 @@ import pretendard from "@/fonts/pretendard";
 import "@/styles/globals.css";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
+import { AuthProvider } from "@/context/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,12 +17,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${pretendard.variable}`}>
-      <body className="font-sans">
-        <div id="wrapper">
-          <Header />
-          <section id="contents">{children}</section>
-          <Footer />
-        </div>
+      <body>
+        <AuthProvider>
+          <div id="wrapper">
+            <Header />
+            <section id="contents">{children}</section>
+            <Footer />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

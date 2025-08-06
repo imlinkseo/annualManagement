@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  font-family: var(--font-pretendard);
+}
+
 body {
   display: flex;
   justify-content: center;
@@ -11,10 +15,10 @@ body > #wrapper {
   width: 100%;
   max-width: 480px;
   min-height: 100vh;
+  background-color: #ececec;
 }
 
 body #contents {
   min-height: 100vh;
   padding: 16px;
-  background-color: #ececec;
 }

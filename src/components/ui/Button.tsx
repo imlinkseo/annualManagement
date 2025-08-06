@@ -15,7 +15,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = forwardRef<HTMLButtonElement, Props>(
   ({ onClick, className, variant, text, ...props }, ref) => {
     const baseStyle =
-      "inline-flex items-center font-semibold justify-center rounded-md text-sm  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none";
+      "cursor-pointer inline-flex items-center font-semibold justify-center rounded-md text-sm  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none";
 
     const variants: Record<Variant, string> = {
       black:

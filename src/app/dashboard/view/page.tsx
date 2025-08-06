@@ -1,7 +1,7 @@
-import React from "react";
+import ViewPage from "@/components/pages/dashboard/ViewPage";
 
 const page = () => {
-  return <div>page</div>;
+  return <ViewPage />;
 };
 
 export default page;

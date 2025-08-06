@@ -1,7 +1,7 @@
-import React from "react";
+import ListPage from "@/components/pages/dashboard/ListPage";
 
 const page = () => {
-  return <div>page</div>;
+  return <ListPage />;
 };
 
 export default page;
