@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { JSX, useState } from "react";
 import {
   addMonths,
   format,
@@ -22,12 +22,12 @@ interface CalendarProps {
 }
 
 export function Calendar({
-  mode = "single",
+  // mode = "single",
   selected,
   onSelect,
   disabled,
-  initialFocus,
-}: CalendarProps) {
+}: // initialFocus,
+CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const goToPreviousMonth = () => {

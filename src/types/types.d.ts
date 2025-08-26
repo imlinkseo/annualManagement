@@ -14,6 +14,7 @@ export interface employee {
 export interface employee_with_unused extends employee {
   vacation_unused: string;
 }
+export type status = "대기" | "승인" | "반려";
 export interface vacation {
   id: string;
   type: string;
@@ -25,19 +26,21 @@ export interface vacation {
   reason: string;
   created_at: string;
   user_id: string;
+  status: Status
 }
 export type type = "연차" | "반차";
 export type category = "일반" | "특수";
 export type time = "오전" | "오후" | null;
-export type status = "대기" | "승인" | "반려";
+
+
 export type special =
-  | "건강검진 (0.5일)"
-  | "예비군/민방위 (1일)"
-  | "본인의 조부모·형제 자매 사망 (2일)"
-  | "본인/배우자의 부모·배우자·자녀 사망 (5일)"
-  | "배우자 출산 (3일)"
-  | "본인 결혼 (5일)"
-  | "본인/배우자의 형제자매 결혼 (1일)"
+  | "건강검진"
+  | "예비군/민방위"
+  | "본인의 조부모·형제 자매 사망"
+  | "본인/배우자의 부모·배우자·자녀 사망"
+  | "배우자 출산"
+  | "본인 결혼"
+  | "본인/배우자의 형제자매 결혼"
   | null;
 export type special_item = {
     [K in Exclude<special, null>]?: number;

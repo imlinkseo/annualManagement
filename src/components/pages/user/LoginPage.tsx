@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { redirect } from "next/navigation";
-import { useAuth } from "@/hooks/useAuthRedirect";
+import { useAuthStore } from "@/stores/authStore";
 import LoginForm from "@/components/form/LoginForm";
 
 const LoginPage = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthStore();
 
   useEffect(() => {
     if (user) {

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Text from "../common/Text";
 
 interface Option<T> {
   label: string;
@@ -35,7 +36,7 @@ function RadioGroup<T extends string | null>({
             onChange={() => onChange(option.value)}
             className="accent-blue-500"
           />
-          <p>{option.label}</p>
+          <Text>{option.label}</Text>
         </label>
       ))}
     </div>

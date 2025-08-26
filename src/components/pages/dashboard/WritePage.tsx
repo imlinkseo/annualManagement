@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { redirect } from "next/navigation";
-import { useAuth } from "@/hooks/useAuthRedirect";
+import { useAuthStore } from "@/stores/authStore";
 import { uploadFormData } from "@/lib/uploadFormData";
 import InputText from "@/components/ui/InputText";
 import Button from "@/components/ui/Button";
@@ -15,6 +15,8 @@ import PageContainer from "@/components/container/PageContainer";
 import RowContainer from "@/components/container/RowContainer";
 import TableContainer from "@/components/container/TableContainer";
 import { formData, special, special_item } from "@/types/types";
+import Text from "@/components/common/Text";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface calcDate {
   common: number;
@@ -22,13 +24,18 @@ interface calcDate {
   total: number;
 }
 
+const initialCalcData: calcDate = {
+  common: 0,
+  special: 0,
+  total: 0,
+};
+const initialReason = "개인사유";
+
+const ERROR_MSG = `*특수연차 일수가 소비할 일수보다 많습니다.*`;
+
 export default function WritePage() {
-  const { user } = useAuth();
-  const [calcDate, setCalcDate] = useState<calcDate>({
-    common: 0,
-    special: 0,
-    total: 0,
-  });
+  const { user, employee } = useAuthStore();
+  const [calcDate, setCalcDate] = useState<calcDate>(initialCalcData);
   const [formData, setFormData] = useState<formData>({
     userId: null,
     type: "연차",
@@ -37,7 +44,7 @@ export default function WritePage() {
     special: null,
     startDate: new Date(),
     endDate: new Date(),
-    reason: "개인사유",
+    reason: initialReason,
     status: "대기",
     date_num: 0,
   });
@@ -46,7 +53,15 @@ export default function WritePage() {
     key: K,
     value: formData[K]
   ) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    if (key === "special" && value) {
+      setFormData((prev) => ({
+        ...prev,
+        [key]: value,
+        reason: value as string,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [key]: value }));
+    }
   };
   const handleChangeCalcDate = <K extends keyof calcDate>(
     key: K,
@@ -60,6 +75,7 @@ export default function WritePage() {
       redirect("/login");
     }
   }, []);
+
   useEffect(() => {
     if (!user) {
       redirect("/login");
@@ -73,10 +89,13 @@ export default function WritePage() {
   useEffect(() => {
     if (formData.type === "연차") {
       handleChangeFormData("time", null);
+
+      setCalcDate({ common: 1, special: 0, total: 1 });
+    } else {
+      setCalcDate({ common: 0.5, special: 0, total: 1 });
     }
-    if (formData.category === "일반") {
-      handleChangeFormData("special", null);
-    }
+    handleChangeFormData("special", null);
+    handleChangeFormData("reason", initialReason);
   }, [formData.type, formData.category]);
 
   useEffect(() => {
@@ -97,6 +116,14 @@ export default function WritePage() {
     }
   }, [formData.startDate, formData.endDate, formData.type]);
 
+  const handleCalcTotalDate = useMemo(() => {
+    return calcDate.common - calcDate.special;
+  }, [calcDate.common, calcDate.special]);
+
+  useEffect(() => {
+    setCalcDate((prev) => ({ ...prev, total: handleCalcTotalDate }));
+  }, [calcDate.common, calcDate.special]);
+
   const handleSubmit = async () => {
     try {
       await uploadFormData(formData);
@@ -109,18 +136,43 @@ export default function WritePage() {
   };
 
   const DROPDOWN_ITEMS_VALUE: special_item[] = [
-    { "건강검진 (0.5일)": 0.5 },
-    { "예비군/민방위 (1일)": 1 },
-    { "본인의 조부모·형제 자매 사망 (2일)": 2 },
-    { "본인/배우자의 부모·배우자·자녀 사망 (5일)": 5 },
-    { "배우자 출산 (3일)": 3 },
-    { "본인 결혼 (5일)": 5 },
-    { "본인/배우자의 형제자매 결혼 (1일)": 1 },
+    { 건강검진: 0.5 },
+    { "예비군/민방위": 1 },
+    { "본인의 조부모·형제 자매 사망": 2 },
+    { "본인/배우자의 부모·배우자·자녀 사망": 5 },
+    { "배우자 출산": 3 },
+    { "본인 결혼": 5 },
+    { "본인/배우자의 형제자매 결혼": 1 },
   ];
+
+  const DROPDOWN_ITEMS_VALUE_LABEL = DROPDOWN_ITEMS_VALUE.map((item) => {
+    const [key, value] = Object.entries(item)[0];
+    return { [`${key}: ${value}일`]: value };
+  });
 
   const labelHandler = (label: string, currentValue: string | null) => {
     return `${currentValue !== label ? currentValue : label}`;
   };
+
+  const handleIsAllDone = (): boolean => {
+    if (formData.category === "특수") {
+      if (formData.special !== null) {
+        if (calcDate.common < calcDate.special) {
+          return false;
+        } else {
+          return true;
+        }
+      } else {
+        return false;
+      }
+    } else {
+      return true;
+    }
+  };
+
+  if (!employee) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <PageContainer>
@@ -159,7 +211,7 @@ export default function WritePage() {
             name="category"
             options={[
               { label: "일반 연차", value: "일반" },
-              { label: "특수 연차", value: "특수" },
+              { label: "특수 연차 포함", value: "특수" },
             ]}
             selected={formData.category}
             onChange={(value) => {
@@ -199,7 +251,11 @@ export default function WritePage() {
                 "선택",
                 formData.special === null ? "선택" : formData.special
               )}
-              items={DROPDOWN_ITEMS_VALUE}
+              items={
+                formData.type === "반차"
+                  ? [DROPDOWN_ITEMS_VALUE_LABEL[0]]
+                  : DROPDOWN_ITEMS_VALUE_LABEL
+              }
               currentValue={String(formData.special)}
               onChangeKey={(key: string) => {
                 handleChangeFormData("special", key as special);
@@ -223,13 +279,49 @@ export default function WritePage() {
             }}
           />
         </RowContainer>
+        <RowContainer label={{ label: "소비" }}>
+          <Text variant={calcDate.common < calcDate.special ? "red" : "black"}>
+            {formData.category === "일반"
+              ? calcDate.total + "일"
+              : calcDate.common +
+                "일" +
+                " - " +
+                "특수 " +
+                calcDate.special +
+                "일" +
+                " = " +
+                calcDate.total +
+                "일"}
+          </Text>
+        </RowContainer>
+      </TableContainer>
+      <TableContainer>
+        <RowContainer label={{ label: "총" }}>
+          <Text>{employee.vacation_total}일</Text>
+        </RowContainer>
+        <RowContainer label={{ label: "사용" }}>
+          <Text>
+            기존&nbsp;({employee.vacation_used})&nbsp;+&nbsp;소비&nbsp;(
+            {calcDate.total}) &nbsp;=&nbsp; 총&nbsp;(
+            {employee.vacation_used + calcDate.total})일
+          </Text>
+        </RowContainer>
+        <RowContainer label={{ label: "잔여" }}>
+          <Text>{parseInt(employee.vacation_unused) - calcDate.total}일</Text>
+        </RowContainer>
       </TableContainer>
       <Button
         text="신청하기"
         variant="blue"
         className="w-full mt-4"
         onClick={handleSubmit}
+        disabled={!handleIsAllDone()}
       />
+      {calcDate.common < calcDate.special && (
+        <Text variant="red" className="text-center">
+          {ERROR_MSG}
+        </Text>
+      )}
     </PageContainer>
   );
 }

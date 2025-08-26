@@ -22,6 +22,7 @@ const Button = forwardRef<HTMLButtonElement, Props>(
         "bg-gray-950 text-white  hover:bg-blue-500 hover:text-black transition-colors",
       blue: "bg-blue-500 text-black hover:text-gray-50 hover:bg-gray-900  transition-colors",
     };
+    const disabled = `bg-gray-300`;
 
     return (
       <button
@@ -29,11 +30,13 @@ const Button = forwardRef<HTMLButtonElement, Props>(
         className={cn(
           baseStyle,
           variants[variant],
+          props.disabled && disabled,
           className,
           "h-10 px-4 py-2"
         )}
         onClick={onClick}
         {...props}
+        disabled={props.disabled}
       >
         {text}
       </button>

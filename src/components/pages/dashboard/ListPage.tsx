@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useId } from "react";
-import { useAuth } from "@/hooks/useAuthRedirect";
+import { useAuthStore } from "@/stores/authStore";
 import { redirect, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PageContainer from "@/components/container/PageContainer";
@@ -20,7 +20,7 @@ import TableContentContainer from "@/components/container/TableContentContainer"
 
 export default function ListPage() {
   const id = useId();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const router = useRouter();
   const [employee, setEmployee] = useState<employee | null>(null);
   const [vacation, setVacation] = useState<vacation[] | null>(null);
@@ -63,67 +63,159 @@ export default function ListPage() {
       reason: vacation.reason || "",
       created_at: vacation.created_at || "",
       user_id: vacation.user_id || "",
+      status: vacation.status || "",
     }).toString();
 
     router.push(`/dashboard/view?${query}`);
   };
 
   useEffect(() => {
-    if (!user) {
-      redirect("/login");
-    } else {
-      if (user?.id) {
-        fetchEmployee();
-        fetchVacation();
-      }
+    if (user?.id) {
+      fetchEmployee();
+      fetchVacation();
     }
   }, [user]);
+
+  console.log(employee);
 
   if (!employee) return <LoadingSpinner />;
 
   return (
     <PageContainer>
-      <PageTitle title={employee.name + "님 사용 연차 목록"} />
+      <PageTitle title={employee.name + "님"} className="text-2xl font-bold" />
+      <PageTitle title={"승인 대기 목록"} />
       <TableContainer>
         <TableHeadContainer>
           <Label label="No" />
           <Label
             label="시작일"
-            className="max-w-full w-[calc((100%_-_120px)/2)]"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
           />
-          <Label label="~" className="max-w-full w-[60px]" />
+          <Label label="~" className="max-w-full hidden xxs:block w-[60px]" />
           <Label
             label="종료일"
-            className="max-w-full w-[calc((100%_-_120px)/2)]"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
           />
         </TableHeadContainer>
       </TableContainer>
       <TableContainer>
-        {vacation?.map((item, idx) => (
-          <RowContainer
-            label={{ label: String(idx + 1) }}
-            key={id + idx}
-            className="cursor-pointer"
-          >
-            <TableContentContainer onClick={() => onMoveViewPage(item)}>
-              <Label
-                label={item.start_date}
-                className="max-w-auto w-[calc((100%_-_60px)/2)] cursor-pointer"
-                type="transparent"
-              />
-              <Label
-                label="~"
-                className="max-w-auto w-[60px] cursor-pointer"
-                type="transparent"
-              />
-              <Label
-                label={item.end_date}
-                className=" max-w-auto w-[calc((100%_-_60px)/2)] cursor-pointer"
-                type="transparent"
-              />
-            </TableContentContainer>
-          </RowContainer>
-        ))}
+        {vacation
+          ?.filter((item) => item.status === "대기")
+          .map((item, idx) => (
+            <RowContainer
+              label={{ label: String(idx + 1) }}
+              key={id + idx}
+              className="cursor-pointer"
+            >
+              <TableContentContainer onClick={() => onMoveViewPage(item)}>
+                <Label
+                  label={item.start_date}
+                  className="max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label="~"
+                  className="max-w-auto hidden xxs:w-[60px] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label={item.end_date}
+                  className=" max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+              </TableContentContainer>
+            </RowContainer>
+          ))}
+      </TableContainer>
+
+      <PageTitle title={"승인 완료 목록"} />
+      <TableContainer>
+        <TableHeadContainer>
+          <Label label="No" />
+          <Label
+            label="시작일"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
+          />
+          <Label label="~" className="max-w-full hidden xxs:block w-[60px]" />
+          <Label
+            label="종료일"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
+          />
+        </TableHeadContainer>
+      </TableContainer>
+      <TableContainer>
+        {vacation
+          ?.filter((item) => item.status === "승인")
+          .map((item, idx) => (
+            <RowContainer
+              label={{ label: String(idx + 1), type: "blue" }}
+              key={id + idx}
+              className="cursor-pointer"
+            >
+              <TableContentContainer onClick={() => onMoveViewPage(item)}>
+                <Label
+                  label={item.start_date}
+                  className="max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label="~"
+                  className="max-w-auto hidden xxs:w-[60px] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label={item.end_date}
+                  className=" max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+              </TableContentContainer>
+            </RowContainer>
+          ))}
+      </TableContainer>
+
+      <PageTitle title={"반려 연차 목록"} />
+      <TableContainer>
+        <TableHeadContainer>
+          <Label label="No" />
+          <Label
+            label="시작일"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
+          />
+          <Label label="~" className="max-w-full hidden xxs:block w-[60px]" />
+          <Label
+            label="종료일"
+            className="max-w-full w-[calc((100%_-_50px)/2)] xxs:w-[calc((100%_-_120px)/2)]"
+          />
+        </TableHeadContainer>
+      </TableContainer>
+      <TableContainer>
+        {vacation
+          ?.filter((item) => item.status === "반려")
+          .map((item, idx) => (
+            <RowContainer
+              label={{ label: String(idx + 1), type: "red" }}
+              key={id + idx}
+              className="cursor-pointer"
+            >
+              <TableContentContainer onClick={() => onMoveViewPage(item)}>
+                <Label
+                  label={item.start_date}
+                  className="max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label="~"
+                  className="max-w-auto hidden xxs:w-[60px] cursor-pointer"
+                  type="transparent"
+                />
+                <Label
+                  label={item.end_date}
+                  className=" max-w-auto w-[50%] xxs:w-[calc((100%_-_60px)/2)] cursor-pointer"
+                  type="transparent"
+                />
+              </TableContentContainer>
+            </RowContainer>
+          ))}
       </TableContainer>
     </PageContainer>
   );

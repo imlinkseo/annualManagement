@@ -8,7 +8,7 @@ const config: Config = {
         sans: ["var(--font-pretendard)", "sans-serif"],
       },
       screens: {
-        xxs: "375px",
+        xxs: "376px",
       },
     },
   },

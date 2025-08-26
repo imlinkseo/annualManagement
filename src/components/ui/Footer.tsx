@@ -2,7 +2,7 @@
 
 import LinkButton from "@/components/ui/LinkButton";
 import { User } from "lucide-react";
-import { useAuth } from "@/hooks/useAuthRedirect";
+import { useAuthStore } from "@/stores/authStore";
 import Text from "../common/Text";
 
 const navItems = [
@@ -10,7 +10,7 @@ const navItems = [
 ];
 
 const Footer = () => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   return (
     <footer className="sticky bg-gray-950 bottom-0 rounded-lg z-50 w-full backdrop-blur supports-[backdrop-filter]:bg-background/60 ">

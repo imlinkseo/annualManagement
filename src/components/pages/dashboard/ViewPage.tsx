@@ -29,6 +29,7 @@ export default function ViewPage() {
       reason: searchParams.get("reason") as string,
       created_at: searchParams.get("created_at") as string,
       user_id: searchParams.get("user_id") as string,
+      status: searchParams.get("status") as string,
     });
   }, [searchParams]);
 
@@ -66,6 +67,19 @@ export default function ViewPage() {
         </RowContainer>
         <RowContainer label={{ label: "사유", className: "w-[80px]" }}>
           <Text>{vacation.reason}</Text>
+        </RowContainer>
+        <RowContainer label={{ label: "상태", className: "w-[80px]" }}>
+          <Text
+            variant={
+              vacation.status === "대기"
+                ? "black"
+                : vacation.status === "승인"
+                ? "blue"
+                : "red"
+            }
+          >
+            {vacation.status}
+          </Text>
         </RowContainer>
       </TableContainer>
       <Button variant="black" text="목록으로" onClick={onClickListButton} />

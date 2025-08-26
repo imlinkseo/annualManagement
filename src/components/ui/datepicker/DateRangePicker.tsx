@@ -32,7 +32,7 @@ export default function DateRangePicker({
     setStartOpen(false);
 
     if (endDate && date && endDate < date) {
-      onChangeEnd?.(undefined);
+      onChangeEnd?.(date);
     }
   };
 
@@ -41,7 +41,7 @@ export default function DateRangePicker({
     setEndOpen(false);
 
     if (startDate && date && startDate > date) {
-      onChangeStart(undefined);
+      onChangeStart(date);
     }
   };
 
@@ -50,7 +50,7 @@ export default function DateRangePicker({
       <div className="flex flex-col w-full gap-[10px]">
         <Button
           onClick={() => setStartOpen(true)}
-          className="w-full flex justify-between"
+          className="w-full flex justify-between "
         >
           <p>{startDate ? format(startDate, "yyyy.MM.dd") : "시작일"}</p>
         </Button>
