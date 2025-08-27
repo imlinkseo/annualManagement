@@ -74,6 +74,7 @@ export default function WritePage() {
     if (!user) {
       redirect("/login");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function WritePage() {
 
   useEffect(() => {
     setCalcDate((prev) => ({ ...prev, total: handleCalcTotalDate }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calcDate.common, calcDate.special]);
 
   const handleSubmit = async () => {

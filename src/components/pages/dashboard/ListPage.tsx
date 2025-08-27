@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useId } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
@@ -74,6 +74,7 @@ export default function ListPage() {
       fetchEmployee();
       fetchVacation();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   console.log(employee);

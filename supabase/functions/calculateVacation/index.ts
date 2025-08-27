@@ -1,17 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "std/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
 
 serve(async () => {
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
   const { data: employees, error } = await supabase
     .from("employees")
     .select("id, joined_date");
 
-  if (error) {
+  if (error || !employees) {
     console.error("직원 데이터 불러오기 실패:", error);
     return new Response("에러 발생", { status: 500 });
   }
@@ -30,7 +30,6 @@ serve(async () => {
     let vacation_generated_date = new Date(joinedDate);
     let vacation_expiry_date;
 
-    // 1년 미만
     if (diffMonths < 12) {
       vacation_total = diffMonths;
       vacation_generated_date = joinedDate;
@@ -38,7 +37,6 @@ serve(async () => {
       vacation_expiry_date.setFullYear(vacation_expiry_date.getFullYear() + 1);
     } else {
       vacation_total = 15 + (diffYears - 1);
-      vacation_generated_date = new Date(joinedDate);
       vacation_generated_date.setFullYear(vacation_generated_date.getFullYear() + diffYears);
       vacation_expiry_date = new Date(vacation_generated_date);
       vacation_expiry_date.setFullYear(vacation_generated_date.getFullYear() + 1);
