@@ -3,60 +3,53 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { LucideIcon } from "lucide-react";
 
 interface Props {
-  type: string;
   href: string;
-  name: string;
-  icon?: LucideIcon;
+  label: string;
 }
 
-const LinkButton = ({ type, href, name, icon: Icon }: Props) => {
-  const pathname = usePathname();
-  const isActive = pathname === href;
+const LinkButton = ({ href, label }: Props) => {
+  const pathlabel = usePathname();
+  const isActive = pathlabel === href;
+  const styles = {
+    transition: `transition-all dutration-100`,
+    ctn: {
+      default: `bg-white border-[1px] group flex items-center justify-center px-[36px] py-[16px] rounded-[5px]`,
+      off: `border-[transparent]`,
+      on: `border-blue-700`,
+      hover: `hover:bg-blue-25`,
+    },
+    text: {
+      default: `text-[17px] leading-[100%]`,
+      off: `text-neutral-700`,
+      on: `text-blue-700`,
+      hover: `group-hover:text-blue-700`,
+    },
+  };
 
-  switch (type) {
-    case "default":
-      return (
-        <Link
-          href={href}
-          className={cn(
-            "flex items-center rounded-lg pt-1 pb-1 pr-2 pl-2 space-x-2 text-sm font-medium transition-colors hover:text-gray-700 hover:bg-gray-300",
-            isActive ? "bg-blue-500 text-black" : "bg-gray-100"
-          )}
-        >
-          {Icon && <Icon className="h-4 w-4" />}
-          <span className="hidden sm:inline-block">{name}</span>
-        </Link>
-      );
-    case "black":
-      return (
-        <Link
-          href={href}
-          className={cn(
-            "flex items-center rounded-lg pt-1 pb-1 pr-2 pl-2 space-x-2 text-sm font-medium transition-colors text-white hover:text-gray-50 hover:bg-gray-900",
-            isActive ? "bg-blue-500 text-black" : "bg-gray-950"
-          )}
-        >
-          {Icon && <Icon className="h-4 w-4" />}
-          <span className="hidden sm:inline-block">{name}</span>
-        </Link>
-      );
-    default:
-      return (
-        <Link
-          href={href}
-          className={cn(
-            "flex items-center rounded-lg pt-1 pb-1 pr-2 pl-2 space-x-2 text-sm font-medium transition-colors hover:text-gray-700 hover:bg-gray-300",
-            isActive ? "bg-blue-500 text-black" : "bg-gray-100"
-          )}
-        >
-          {Icon && <Icon className="h-4 w-4" />}
-          <span className="hidden sm:inline-block">{name}</span>
-        </Link>
-      );
-  }
+  return (
+    <Link
+      href={href}
+      className={cn(
+        styles.transition,
+        styles.ctn.default,
+        isActive ? styles.ctn.on : styles.ctn.off,
+        styles.ctn.hover
+      )}
+    >
+      <span
+        className={cn(
+          styles.transition,
+          styles.text.default,
+          isActive ? styles.text.on : styles.text.off,
+          styles.text.hover
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
 };
 
 export default LinkButton;

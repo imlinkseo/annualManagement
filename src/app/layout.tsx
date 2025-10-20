@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import AuthStoreProvider from "@/providers/AuthStoreProvider";
 import Header from "@/components/ui/Header";
-import Footer from "@/components/ui/Footer";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -59,7 +58,6 @@ export default async function RootLayout({
           <div id="wrapper">
             <Header />
             <section id="contents">{children}</section>
-            <Footer />
           </div>
         </AuthStoreProvider>
       </body>

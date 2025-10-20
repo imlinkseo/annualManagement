@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils";
+
 interface Props {
   children: React.ReactNode;
   className?: string;
 }
 
-export default function PageContainer({ children, className }: Props) {
+export default function SizeContainer({ children, className }: Props) {
   const styles = {
-    ctn: `bg-white px-[50px] py-[60px] rounded-[20px] shadow-card`,
+    ctn: `max-w-[1920px] w-full`,
   };
   return <div className={cn(styles.ctn, className)}>{children}</div>;
 }

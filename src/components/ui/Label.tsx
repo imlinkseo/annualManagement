@@ -4,20 +4,23 @@ import { cn } from "@/lib/utils";
 export interface LabelProps {
   label: string;
   className?: string;
-  type?: string;
+  required?: boolean;
+  name?: string;
 }
 
-const Label = ({ className, label, type = "black" }: LabelProps) => {
-  const defaultStyles = `text-[14px] xxs:text-md justify-center items-center flex font-semibold p-2 whitespace-nowrap min-w-[50px]  xxs:min-w-[60px] max-w-[100px] shrink-0 min-h-6`;
-  const variantStyles: { [key: string]: string } = {
-    black: `bg-gray-900 text-white`,
-    transparent: `text-gray-950`,
-    red: `bg-red-500`,
-    blue: `bg-blue-500`,
+const Label = ({ className, label, name, required }: LabelProps) => {
+  const styles = {
+    ctn: `inline-flex items-start gap-[2px]`,
+    text: {
+      default: `text-[17px] text-neutral-900 font-semibold whitespace-nowrap`,
+      sup: `text-red-600 text-[0.75em] leading-none `,
+    },
   };
+
   return (
-    <label className={cn(defaultStyles, variantStyles[type], className)}>
-      {label}
+    <label className={cn(styles.ctn)} htmlFor={name}>
+      {required === true && <span className={cn(styles.text.sup)}> * </span>}
+      <span className={cn(styles.text.default, className)}>{label}</span>
     </label>
   );
 };

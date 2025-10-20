@@ -1,12 +1,12 @@
 "use client";
 
-import { Home, List, Pen } from "lucide-react";
 import LinkButton from "@/components/ui/LinkButton";
 
 const navItems = [
-  { type: "black", name: "메인", href: "/dashboard", icon: Home },
-  { type: "black", name: "목록", href: "/dashboard/list", icon: List },
-  { type: "black", name: "작성", href: "/dashboard/write", icon: Pen },
+  { label: "전체 멤버", href: "/" },
+  { label: "내 목록", href: "/myList" },
+  { label: "전체 목록", href: "/listAll" },
+  { label: "작성하기", href: "/write" },
 ];
 
 const Nav = () => {

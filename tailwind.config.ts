@@ -1,3 +1,4 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -7,11 +8,18 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-pretendard)", "sans-serif"],
       },
-      screens: {
-        xxs: "376px",
+      screens: { xxs: "376px" },
+
+      borderRadius: {
+        btn: "5px",
+        input: "5px",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
       },
     },
   },
   plugins: [],
 };
+
 export default config;

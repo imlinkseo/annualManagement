@@ -7,21 +7,28 @@ import Label from "./Label";
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   className?: string;
-  onChangeValue: (value: string) => void;
+  onChangeValue?: (value: string) => void;
+  name?: string;
 }
 
 const InputText = forwardRef<HTMLInputElement, Props>(
-  ({ label, className, onChangeValue, ...props }, ref) => {
+  ({ label, className, onChangeValue, name, ...props }, ref) => {
+    const styles = {
+      ctn: `bg-white px-[20px] py-[16.5px]  rounded-[5px] border-[1px] border-solid border-neutral-300 w-full`,
+      text: {
+        value: `font-medium text-[17px] text-neutral-900`,
+        placeholder: `placeholder:font-medium placeholder:text-[17px] placeholder:text-neutral-500`,
+      },
+    };
     return (
-      <div className="flex items-center gap-2 w-full">
-        {label && <Label label={label} />}
+      <div className="flex flex-col items-start gap-2.5 w-full">
+        {label && <Label label={label} required={props.required} name={name} />}
         <input
           ref={ref}
-          className={cn(
-            "h-10 w-full rounded-md bg-gray-50 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1",
-            className
-          )}
-          onChange={(e) => onChangeValue(e.target.value)}
+          className={cn(styles.ctn, className)}
+          onChange={(e) => onChangeValue && onChangeValue(e.target.value)}
+          required={props.required}
+          name={name}
           {...props}
         />
       </div>

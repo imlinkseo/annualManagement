@@ -1,26 +1,30 @@
 "use client";
 
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import React, { ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "black" | "blue";
+type Variant = "black" | "blue" | "red" | "lightBlue" | "gray";
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant: Variant;
   className?: string;
   text: string;
+  leftIcon?: React.ReactNode;
   onClick?: () => void;
 }
 
 const Button = forwardRef<HTMLButtonElement, Props>(
-  ({ onClick, className, variant, text, ...props }, ref) => {
+  ({ onClick, className, variant, text, leftIcon, ...props }, ref) => {
     const baseStyle =
-      "cursor-pointer inline-flex items-center font-semibold justify-center rounded-md text-sm  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none";
+      "gap-[10px] cursor-pointer inline-flex items-center font-semibold justify-center transition-all disabled:opacity-50 disabled:pointer-events-none";
 
     const variants: Record<Variant, string> = {
       black:
         "bg-gray-950 text-white  hover:bg-blue-500 hover:text-black transition-colors",
-      blue: "bg-blue-500 text-black hover:text-gray-50 hover:bg-gray-900  transition-colors",
+      blue: "bg-blue-700 text-white hover:bg-blue-600 py-[12px] rounded-[5px]",
+      red: `bg-red-50 text-red-600 text-[17px] rounded-[5px] px-[35px] py-[16px] leading-[100%]`,
+      lightBlue: `bg-blue-50 text-blue-700 text-[17px] rounded-[5px] px-[35px] py-[16px] leading-[100%]`,
+      gray: `bg-neutral-500 text-white hover:bg-neutral-700 py-[12px] rounded-[5px]`,
     };
     const disabled = `bg-gray-300`;
 
@@ -31,13 +35,13 @@ const Button = forwardRef<HTMLButtonElement, Props>(
           baseStyle,
           variants[variant],
           props.disabled && disabled,
-          className,
-          "h-10 px-4 py-2"
+          className
         )}
         onClick={onClick}
         {...props}
         disabled={props.disabled}
       >
+        {leftIcon && leftIcon}
         {text}
       </button>
     );

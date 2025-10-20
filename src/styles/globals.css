@@ -1,5 +1,91 @@
 @import "tailwindcss";
 
+:root {
+  /* Neutral (회색계) */
+  --color-neutral-950: #353638; /* 진한 회색 (예: 다크 배경) */
+  --color-neutral-900: #383838; /* 기본 텍스트 */
+  --color-neutral-700: #747474; /* 보조 텍스트 */
+  --color-neutral-500: #acacac; /* 비활성 / 라벨 */
+  --color-neutral-300: #e9e9e9; /* 라인 / 경계 */
+  --color-neutral-200: #e4e4e4; /* 약한 라인 */
+  --color-white: #ffffff; /* 순수 흰색 */
+
+  /* Blue (파란색 계열) */
+  --color-blue-700: #005be3; /* 브랜드 / 주요 버튼 */
+  --color-blue-600: #0049ff;
+  --color-blue-50: #f2f6ff; /* 연한 배경 */
+  --color-blue-25: #f6f8ff; /* 페이지 배경 */
+
+  /* Green (긍정 / 성공) */
+  --color-green-500: #4cb283;
+
+  /* Red & Orange (위험 / 경고) */
+  --color-red-600: #d74528; /* 오류 / 위험 */
+  --color-red-50: #fff2f2; /* 위험 영역 배경 */
+  --color-orange-600: #de3412; /* 경고 / 주의 */
+
+  /* border-radius */
+  --br-button: 5px;
+  --br-input: 5px;
+
+  /* Shadow */
+  --shadow-card: 0 4px 24px 0 rgba(49, 33, 158, 0.2);
+}
+
+@theme {
+  /* 순수 팔레트도 필요하면 노출 */
+  --color-neutral-950: var(--color-neutral-950);
+  --color-neutral-900: var(--color-neutral-900);
+  --color-neutral-700: var(--color-neutral-700);
+  --color-neutral-500: var(--color-neutral-500);
+  --color-neutral-300: var(--color-neutral-300);
+  --color-neutral-200: var(--color-neutral-200);
+  --color-white: var(--color-white);
+
+  --color-blue-700: var(--color-blue-700);
+  --color-blue-600: var(--color-blue-600);
+  --color-blue-50: var(--color-blue-50);
+  --color-blue-25: var(--color-blue-25);
+
+  --color-green-500: var(--color-green-500);
+  --color-red-600: var(--color-red-600);
+  --color-red-50: var(--color-red-50);
+  --color-orange-600: var(--color-orange-600);
+
+  /* 역할(role) → 유틸 이름 매핑 (★ 이게 중요) */
+  --color-page: var(--role-page);
+  --color-surface1: var(--role-surface);
+  --color-content: var(--role-content);
+  --color-muted: var(--role-muted);
+  --color-surface2: var(--role-border);
+  --color-accent: var(--role-accent);
+  --color-accent-contrast: var(--role-accent-contrast);
+
+  --shadow-card: var(--shadow-card);
+}
+
+/* ② 라이트/다크에 따라 바뀌는 "역할(role) 변수" */
+:root {
+  --role-page: var(--color-blue-25); /* 페이지 배경 */
+  --role-surface: var(--color-white); /* 카드/패널 배경 */
+  --role-content: var(--color-neutral-900); /* 기본 텍스트 */
+  --role-muted: var(--color-neutral-700); /* 보조 텍스트 */
+  --role-border: var(--color-neutral-200); /* 경계선 */
+  --role-accent: var(--color-blue-600); /* 포인트/링크/액션 */
+  --role-accent-contrast: var(--color-white); /* 액센트 대비 텍스트 */
+}
+
+:root.dark,
+[data-theme="dark"] {
+  --role-page: #0f1115; /* 더 어두운 페이지 배경 */
+  --role-surface: #1b1d22; /* 서페이스(카드) */
+  --role-content: #f3f4f6; /* 거의 흰색 텍스트 */
+  --role-muted: #a3a7ad; /* 다크 보조 텍스트 */
+  --role-border: #2b2f36; /* 어두운 경계선 */
+  --role-accent: var(--color-blue-600); /* 동일 유지(필요시 변환 가능) */
+  --role-accent-contrast: var(--color-white); /* 동일 유지 */
+}
+
 html {
   font-family: var(--font-pretendard);
 }
@@ -7,18 +93,23 @@ html {
 body {
   display: flex;
   justify-content: center;
-  color: "#131416";
+  color: #131416;
 }
 
 body > #wrapper {
   position: relative;
   width: 100%;
-  max-width: 480px;
   min-height: 100vh;
-  background-color: #ececec;
+  background-color: var(--role-page);
+
+  margin: 0 auto;
 }
 
 body #contents {
   min-height: 100vh;
-  padding: 16px;
+  padding: 0 80px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: start;
 }
