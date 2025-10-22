@@ -20,3 +20,12 @@ export const removeHtmlTags = (input: string): string => {
     .replace(/&nbsp;/g, "") // Remove non-breaking spaces
     .trim(); // Trim whitespace
 };
+
+export function isDeepEqual<T>(a: T | null | undefined, b: T | null | undefined) {
+  if (a === b) return true;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}

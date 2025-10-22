@@ -34,7 +34,7 @@ const LoginForm = () => {
       if (data.session) {
         supabase.auth.onAuthStateChange((event) => {
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-            router.push("/dashboard");
+            router.push("/");
           }
         });
       }

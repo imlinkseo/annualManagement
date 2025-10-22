@@ -106,10 +106,24 @@ body > #wrapper {
 }
 
 body #contents {
-  min-height: 100vh;
   padding: 0 80px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
   align-items: start;
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
 }

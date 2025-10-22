@@ -8,13 +8,16 @@ import { useRouter } from "next/navigation";
 import PageTitle from "@/components/ui/PageTitle";
 import PageContainer from "@/components/container/PageContainer";
 import Logo from "@/components/ui/Logo";
+import DatePicker from "@/components/ui/datepicker/DatePicker";
+import Label from "@/components/ui/Label";
 
 const JoinPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-  const [position, setPosition] = useState("");
+  const [team, setTeam] = useState("");
+  const [joinedDate, setJoinedDate] = useState<Date | undefined>(undefined);
   const [level, setLevel] = useState("");
   const router = useRouter();
 
@@ -26,6 +29,9 @@ const JoinPage = () => {
   };
 
   const handleJoin = async () => {
+    if (joinedDate === undefined) {
+      return;
+    }
     if (password !== confirmPassword) {
       alert("비밀번호가 일치하지 않습니다.");
       return;
@@ -54,13 +60,48 @@ const JoinPage = () => {
       return;
     }
 
+    const today = new Date();
+
+    const diffYears =
+      today.getFullYear() -
+      joinedDate.getFullYear() -
+      (today <
+      new Date(today.getFullYear(), joinedDate.getMonth(), joinedDate.getDate())
+        ? 1
+        : 0);
+
+    const isOverOneYear = diffYears >= 1;
+    const vacationTotal = isOverOneYear ? 15 : 11;
+
+    const getRecentVacationGeneratedDate = (baseDate: Date) => {
+      const current = new Date(baseDate);
+      while (current <= today) {
+        const next = new Date(current);
+        next.setFullYear(next.getFullYear() + 1);
+        if (next > today) break;
+        current.setFullYear(current.getFullYear() + 1);
+      }
+      return current;
+    };
+
+    const vacationGeneratedDate = getRecentVacationGeneratedDate(joinedDate);
+
+    const vacationExpiryDate = new Date(vacationGeneratedDate);
+    vacationExpiryDate.setFullYear(vacationExpiryDate.getFullYear() + 1);
+
     const { error: insertError } = await supabase.from("employees").insert([
       {
         user_id: userId,
         name,
-        position,
+        team,
         level,
-        joined_date: new Date().toISOString().split("T")[0],
+        joined_date: joinedDate,
+        vacation_generated_date: vacationGeneratedDate,
+        vacation_expiry_date: vacationExpiryDate,
+        vacation_total: vacationTotal,
+        vacation_used: 0,
+        vacation_rest: vacationTotal,
+        is_admin: false,
       },
     ]);
 
@@ -91,9 +132,9 @@ const JoinPage = () => {
         <InputText
           label="팀"
           type="text"
-          value={position}
+          value={team}
           placeholder="팀 이름을 입력해주세요."
-          onChangeValue={setPosition}
+          onChangeValue={setTeam}
         />
         <InputText
           label="직책"
@@ -102,14 +143,13 @@ const JoinPage = () => {
           placeholder="직책을 입력해주세요."
           onChangeValue={setLevel}
         />
-        <InputText
-          label="입사일"
-          type="text"
-          value={level}
-          placeholder="입사일을 입력해주세요."
-          onChangeValue={setLevel}
-          required={true}
-        />
+        <div className={cn(styles.buttonCtn)}>
+          <Label label={"입사일"} required={true} name={name} />
+          <DatePicker
+            selected={joinedDate}
+            onSelect={(date) => setJoinedDate(date)}
+          />
+        </div>
         <InputText
           label="아이디"
           type="email"

@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(subscribeWithSelec
   refreshAuth: async () => {
     set({ loading: true });
 
-     const { data: u } = await supabase.auth.getUser();  // 👈 서버와 대조
+     const { data: u } = await supabase.auth.getUser();  
 
     const user = u.user ?? null;
 
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(subscribeWithSelec
 
     if (user?.id) {
       const { data, error } = await supabase
-        .from("employees_with_unused")
+        .from("employees")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -85,39 +85,49 @@ export const useAuthStore = create<AuthState & AuthActions>()(subscribeWithSelec
     set({ loading: false });
   },
 
-  startAuthListener: () => {
-    const { data: sub } = supabase.auth.onAuthStateChange(async () => {
-     const { data: u } = await supabase.auth.getUser();
-        const user = u.user ?? null;
-        set({ user });
+startAuthListener: () => {
+  const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+     
+      get().clear();
+    
+      return;
+    }
 
-        if (user?.id) {
-          const { data, error } = await supabase
-            .from("employees_with_unused")
-            .select("*")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          set({ employee: !error ? data ?? null : null });
-        } else {
-          set({ employee: null });
-        }
-    });
+    // 그 외 이벤트(INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED, SIGNED_IN 등)
+    const u = session?.user ?? (await supabase.auth.getUser()).data.user ?? null;
+    const s = session ?? (await supabase.auth.getSession()).data.session ?? null;
+    set({ user: u, session: s });
 
-    return () => sub.subscription.unsubscribe();
-  },
+    if (u?.id) {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("user_id", u.id)
+        .maybeSingle();
+      set({ employee: !error ? data ?? null : null });
+    } else {
+      set({ employee: null });
+    }
+
+    set({ loading: false });
+  });
+
+  return () => sub.subscription.unsubscribe();
+},
 
   startEmployeeRealtime: () => {
     const empId = get().employee?.id;
     if (!empId) return () => {};
 
     const ch = supabase
-      .channel("realtime:employees_with_unused")
+      .channel("realtime:employees")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "employees_with_unused",
+          table: "employees",
           filter: `id=eq.${empId}`,
         },
         (payload) => {

@@ -45,25 +45,34 @@ export default function DateRangePicker({
     }
   };
 
+  const styles = {
+    ctn: `flex w-full gap-[10px] items-center`,
+    text: `text-neutral-900 text-[16px]`,
+    buttonText: `text-neutral-900 text-[17px]`,
+    buttonTextDisabled: `text-neutral-700`,
+  };
+
   return (
     <>
-      <div className="flex flex-col w-full gap-[10px]">
-        <Button
-          onClick={() => setStartOpen(true)}
-          className="w-full flex justify-between "
-        >
-          <p>{startDate ? format(startDate, "yyyy.MM.dd") : "시작일"}</p>
+      <div className={cn(styles.ctn)}>
+        <Button onClick={() => setStartOpen(true)}>
+          <p className={cn(styles.buttonText)}>
+            {startDate ? format(startDate, "yyyy.MM.dd") : "시작일"}
+          </p>
         </Button>
-
+        <p className={cn(styles.text)}>~</p>
         <Button
           onClick={() => !isEndDateDisabled && setEndOpen(true)}
-          className={cn(
-            "w-full flex justify-between",
-            isEndDateDisabled && "opacity-50"
-          )}
           disabled={isEndDateDisabled}
         >
-          <p>{endDate ? format(endDate, "yyyy.MM.dd") : "종료일"}</p>
+          <p
+            className={cn(
+              styles.buttonText,
+              isEndDateDisabled && styles.buttonTextDisabled
+            )}
+          >
+            {endDate ? format(endDate, "yyyy.MM.dd") : "종료일"}
+          </p>
         </Button>
       </div>
 

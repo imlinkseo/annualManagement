@@ -1,32 +1,39 @@
 export interface employee {
-  id: string;
-  user_id: string;
+  id?: string;
+  user_id?: string;
   name: string;
-  position: string;
-  level: string;
-  joined_date: string;
-  created_at: string;
-  vacation_total: string;
-  vacation_used: string;
-  vacation_generated_date: string;
-  vacation_expiry_date: string;
+  level?: string;
+  joined_date?: string;
+  vacation_generated_date?: string;
+  vacation_expiry_date?: string;
+  vacation_total?: string;
+  vacation_used?: string;
+  vacation_rest?: string;
+  full_used_date?: string;
+  half_used_date?: string;
+  created_at?: string;
+  is_admin?: boolean;
 }
 export interface employee_with_unused extends employee {
-  vacation_unused: string;
+  vacation_unused?: string;
 }
 export type status = "대기" | "승인" | "반려";
 export interface vacation {
-  id: string;
+  id?: string;
   type: string;
-  time: string | null;
-  category: string;
-  special: string | null;
-  start_date: string;
-  end_date: string;
-  reason: string;
-  created_at: string;
-  user_id: string;
-  status: Status
+  time?: string | null;
+  category?: string;
+  special?: string | null;
+  start_date?: string;
+  end_date?: string;
+  reason?: string;
+  created_at?: string;
+  user_id?: string;
+  status?: Status
+  normal_num?: string;
+  special_num?: string;
+  date_num?: string;
+  refuse_reason?: string;
 }
 export type type = "연차" | "반차";
 export type category = "일반" | "특수";
@@ -55,5 +62,8 @@ export interface formData {
   endDate: Date | undefined;
   reason: string;
   status: status;
+  normal_num: number;
+  special_num: number;
   date_num: number;
+  file: file | null;
 }

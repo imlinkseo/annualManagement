@@ -12,12 +12,12 @@ export default function Text({
   className,
   variant = "black",
 }: Props) {
-  const defaultStyles = `text-[14px] xxs:text-[16px]`;
+  const defaultStyles = `text-[17px]`;
   const variantStyles: { [key: string]: string } = {
-    black: `text-gray-950`,
+    black: `text-neutral-900`,
     white: `text-white`,
-    red: `text-red-500`,
-    blue: `text-blue-500`,
+    red: `text-red-600`,
+    blue: `text-blue-700`,
   };
   return (
     <p className={cn(defaultStyles, className, variantStyles[variant])}>

@@ -1,11 +1,12 @@
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown/DropdownItem";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
-import { useId } from "react";
+import { ChevronDownIcon, ChevronUpIcon } from "@radix-ui/react-icons";
+import { useId, useState } from "react";
 
 interface Props {
   label: string;
@@ -25,30 +26,52 @@ const DropDown = ({
   className,
 }: Props) => {
   const id = useId();
+  const [open, setOpen] = useState(false);
+
+  const styles = {
+    trigger: {
+      ctn: `flex justify-between w-full border border-solid border-neutral-300 px-[20px] py-[16.5px] rounded-[5px]`,
+      icon: `h-6 w-6 text-blue-700`,
+    },
+    menuContent: {
+      ctn: `max-h-[245px] min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto bg-white`,
+    },
+    menuItem: {
+      text: `group-hover:text-neutral-900 text-neutral-700`,
+    },
+  };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`${className} w-full h-full min-h-[40px] flex flex-[1_0_0] items-center justify-between self-stretch rounded-[5px]  bg-white px-5 text-sm font-medium text-[#1E2124] focus:text-[#1E2124] focus:outline-none focus:ring-0`}
-      >
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger className={cn(styles.trigger.ctn, className)}>
         {label}
-        <ChevronDownIcon className="ml-2 h-5 w-5 text-black" />
+        {open ? (
+          <ChevronUpIcon className={cn(styles.trigger.icon)} />
+        ) : (
+          <ChevronDownIcon className={cn(styles.trigger.icon)} />
+        )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="max-h-[245px] min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto bg-white">
+      <DropdownMenuContent className={cn(styles.menuContent.ctn)}>
         {items.map((item) => {
           const [key, value] = Object.entries(item)[0];
-
           return (
             <DropdownMenuItem
               key={key + id}
-              className={`${
-                key === label || value === currentValue ? "bg-[#ECF2FE]" : ""
-              } cursor-pointer`}
+              className={cn(
+                key === label || value === currentValue ? "bg-blue-50" : ""
+              )}
               onClick={() => {
                 onChangeKey(key);
                 onChangeValue?.(value);
               }}
             >
-              {key}
+              <p
+                className={cn(
+                  styles.menuItem.text,
+                  (key === label || value === currentValue) && "text-blue-700"
+                )}
+              >
+                {key}
+              </p>
             </DropdownMenuItem>
           );
         })}
