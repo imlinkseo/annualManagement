@@ -52,7 +52,7 @@ export default function Modal({
     layout: {
       ctn: `flex flex-col`,
       header: `flex items-start justify-between gap-4 pt-[24px] pr-[14px] pb-[24px] pl-[24px]`,
-      title: `text-[19px] font-semibold text-neutral-900 dark:text-white`,
+      title: `text-[19px] font-bold text-neutral-900 dark:text-white`,
       closeBtn: `inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.98] dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white`,
       content: `px-[20px] text-neutral-700 dark:text-neutral-200`,
       footer: `flex items-center justify-center gap-2.5 px-6 py-[20px]`,

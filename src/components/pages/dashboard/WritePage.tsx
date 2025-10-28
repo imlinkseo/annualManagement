@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, redirect } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuthStore } from "@/stores/authStore";
 import { uploadFormData } from "@/lib/uploadFormData";
 import Button from "@/components/ui/Button";
@@ -12,7 +13,7 @@ import DropDown from "@/components/ui/dropdown/DropDown";
 import PageContainer from "@/components/container/PageContainer";
 import TableContainer from "@/components/container/TableContainer";
 import ThTr from "@/components/table/ThTr";
-import { formData, special, special_item } from "@/types/types";
+import { formData, special } from "@/types/types";
 import Text from "@/components/common/Text";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { ThProps } from "@/components/table/Th";
@@ -20,6 +21,7 @@ import TdTr from "@/components/table/TdTr";
 import Textarea from "@/components/ui/Textarea";
 import SingleFileInput from "@/components/ui/SingleFileInput";
 import { getHolidaySetInRange, isWeekend } from "@/lib/krHolidays";
+import { Special } from "@/types/types";
 
 const initialReason = "개인사유";
 const ERROR_MSG = `*특수연차 일수가 소비할 일수보다 많습니다.*`;
@@ -27,6 +29,7 @@ const ERROR_MSG = `*특수연차 일수가 소비할 일수보다 많습니다.*
 export default function WritePage() {
   const { user, employee } = useAuthStore();
   const router = useRouter();
+  const [special, setSpecial] = useState<Special[] | null>(null);
   const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
   const ymd = (d: Date) => {
     const z = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -35,7 +38,15 @@ export default function WritePage() {
     const dd = String(z.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
   };
+  async function fetchSpecial() {
+    const { data, error } = await supabase.from("special").select("*");
 
+    if (error) {
+      console.error("데이터 가져오기 오류:", error.message);
+    } else {
+      setSpecial(data ?? null);
+    }
+  }
   const isBusinessDay = (d: Date) => !isWeekend(d) && !holidaySet.has(ymd(d));
 
   const countBusinessDays = (start: Date, end: Date) => {
@@ -65,7 +76,7 @@ export default function WritePage() {
     file: null,
   });
 
-  const recalc = (draft: formData): formData => {
+  const reCalc = (draft: formData): formData => {
     const start = draft.startDate as Date;
     const end = draft.endDate as Date;
     const normal =
@@ -98,13 +109,16 @@ export default function WritePage() {
           ? { endDate: value }
           : {}),
       } as formData;
-      return recalc(next);
+      return reCalc(next);
     });
   };
 
   useEffect(() => {
     if (!user) redirect("/login");
-    else if (user.id) update("userId", user.id);
+    else if (user.id) {
+      update("userId", user.id);
+      fetchSpecial();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -128,20 +142,6 @@ export default function WritePage() {
     }
   };
 
-  const DROPDOWN_ITEMS_VALUE: special_item[] = [
-    { 건강검진: 0.5 },
-    { "예비군/민방위": 1 },
-    { "본인의 조부모·형제 자매 사망": 2 },
-    { "본인/배우자의 부모·배우자·자녀 사망": 5 },
-    { "배우자 출산": 3 },
-    { "본인 결혼": 5 },
-    { "본인/배우자의 형제자매 결혼": 1 },
-  ];
-  const DROPDOWN_ITEMS_VALUE_LABEL = DROPDOWN_ITEMS_VALUE.map((item) => {
-    const [key, value] = Object.entries(item)[0];
-    return { [`${key}: ${value}일`]: value };
-  });
-
   const handleIsAllDone = (): boolean => {
     if (formData.category === "특수") {
       if (formData.special === null) return false;
@@ -157,7 +157,7 @@ export default function WritePage() {
     th: `hidden`,
   };
 
-  if (!employee) return <LoadingSpinner />;
+  if (!employee || !special) return <LoadingSpinner />;
 
   const MainTable = () => {
     const columns: ThProps[] = useMemo(
@@ -248,6 +248,10 @@ export default function WritePage() {
       },
     ];
 
+    const DROPDOWN_ITEMS_VALUE_LABEL = special.map((item) => {
+      return { [`${item.name}: ${item.num}일`]: item.num as string };
+    });
+
     const specialRow = [
       { key: `title`, content: `특수` },
       {
@@ -268,7 +272,7 @@ export default function WritePage() {
             onChangeKey={(key: string) => update("special", key as special)}
             onChangeValue={(value: string | number) =>
               setFormData((prev) =>
-                recalc({
+                reCalc({
                   ...prev,
                   special_num:
                     typeof value === "number" ? value : parseFloat(value),
@@ -402,8 +406,8 @@ export default function WritePage() {
       <PageTitle title="연차 신청서 작성" type="big" />
       <div className={cn(styles.formCtn)}>
         <div className={cn(styles.tableCtn)}>
-          {MainTable()}
-          {SideTable()}
+          <MainTable />
+          <SideTable />
         </div>
         <Button
           text="신청하기"

@@ -1,5 +1,5 @@
-import React from "react";
+import ManageSpecialPage from "@/components/pages/dashboard/ManageSpecialPage";
 
 export default function page() {
-  return <div>page</div>;
+  return <ManageSpecialPage />;
 }

@@ -1,5 +1,5 @@
 "use client";
-import { cn, isDeepEqual } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -24,9 +24,6 @@ export default function MemberAllPage() {
   const router = useRouter();
   const id = useId();
 
-  const setEmployeeIfChanged = (next: employee[] | null) =>
-    setEmployees((prev) => (isDeepEqual(prev, next) ? prev : next));
-
   const fetchEmployees = async () => {
     const { data, error } = await supabase
       .from("employees")
@@ -37,7 +34,7 @@ export default function MemberAllPage() {
     if (error) {
       console.error("데이터 가져오기 오류:", error.message);
     } else {
-      setEmployeeIfChanged(data ?? null);
+      setEmployees(data ?? null);
     }
   };
 

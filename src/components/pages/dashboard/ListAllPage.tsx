@@ -30,6 +30,7 @@ export default function ListAllPage() {
   const [vacation, setVacation] = useState<vacation[] | null>(null);
   const [open, setOpen] = useState(false);
   const [refuseReason, setRefuseReason] = useState("");
+  const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const { showToast } = useToast();
 
   const setEmployeeIfChanged = (next: employee[] | null) =>
@@ -59,40 +60,23 @@ export default function ListAllPage() {
     const { data, error } = await supabase
       .from("vacation")
       .select(
-        "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason"
+        "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason, date_num"
       );
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setVacationIfChanged(data ?? null);
-    }
+    if (error) console.error(error.message);
+    else setVacationIfChanged(data ?? null);
   };
 
   useEffect(() => {
-    if (!user) {
-    } else {
-      if (user?.id) {
-        fetchEmployees();
-        fetchVacation();
-      }
+    if (user?.id) {
+      fetchEmployees();
+      fetchVacation();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, []);
 
   const TAB_ITEMS = [
-    {
-      label: `대기중`,
-      value: `대기` as status,
-    },
-    {
-      label: `승인`,
-      value: `승인` as status,
-    },
-    {
-      label: `반려`,
-      value: `반려` as status,
-    },
+    { label: `대기중`, value: `대기` as status },
+    { label: `승인`, value: `승인` as status },
+    { label: `반려`, value: `반려` as status },
   ];
 
   function onChangeStatus(value: status) {
@@ -113,13 +97,64 @@ export default function ListAllPage() {
       { key: `refuse`, label: `반려`, width: `w-[100px]` },
     ];
 
-    function onClickApprovalButton() {
-      console.log("onClickApprovalButton");
-    }
-    function onClickRefuseButton() {
+    const onClickApprovalButton = async (item: vacation) => {
+      const delta = item.category === "특수" ? 0 : Number(item.date_num ?? 0);
+
+      const { data: updated, error: upErr } = await supabase
+        .from("vacation")
+        .update({ status: "승인" })
+        .eq("id", item.id)
+        .eq("status", "대기")
+        .select("id, status")
+        .maybeSingle();
+
+      if (upErr) {
+        showToast(`승인 실패: ${upErr.message}`);
+        return;
+      }
+      if (!updated) {
+        showToast("이미 처리된 신청서입니다.");
+        return;
+      }
+
+      if (delta > 0) {
+        const { data: emp, error: empErr } = await supabase
+          .from("employees")
+          .select("vacation_used, vacation_rest")
+          .eq("user_id", item.user_id)
+          .single();
+
+        if (empErr) {
+          showToast(`직원 정보 조회 실패: ${empErr.message}`);
+          return;
+        }
+
+        const nextUsed = Number(emp.vacation_used ?? 0) + delta;
+        const nextRest = Math.max(0, Number(emp.vacation_rest ?? 0) - delta);
+
+        const { error: updEmpErr } = await supabase
+          .from("employees")
+          .update({ vacation_used: nextUsed, vacation_rest: nextRest })
+          .eq("user_id", item.user_id);
+
+        if (updEmpErr) {
+          showToast(`직원 연차 반영 실패: ${updEmpErr.message}`);
+          return;
+        }
+      }
+
+      setVacationIfChanged(
+        (vacation ?? []).map((v) =>
+          v.id === item.id ? { ...v, status: "승인" } : v
+        )
+      );
+      showToast("승인 처리되었습니다.");
+    };
+
+    const onClickRefuseButton = (id: number | string) => {
+      setSelectedId(id);
       setOpen(true);
-      console.log("onClickRefuseButton");
-    }
+    };
 
     function onMakeRow(status: status) {
       return vacation
@@ -151,7 +186,7 @@ export default function ListAllPage() {
                 <Button
                   variant="green"
                   text="승인"
-                  onClick={onClickApprovalButton}
+                  onClick={() => onClickApprovalButton(filtered)}
                 />
               ),
             },
@@ -161,7 +196,7 @@ export default function ListAllPage() {
                 <Button
                   variant="red"
                   text="반려"
-                  onClick={onClickRefuseButton}
+                  onClick={() => onClickRefuseButton(filtered?.id || "")}
                 />
               ),
             },
@@ -211,7 +246,11 @@ export default function ListAllPage() {
                   key !== "status" &&
                   key !== "user_id" &&
                   key !== "id" &&
-                  key !== "refuse_reason"
+                  key !== "refuse_reason" &&
+                  key !== "normal_num" &&
+                  key !== "date_num" &&
+                  key !== "special_num" &&
+                  key !== "special_file_path"
                 ) {
                   return { key, content: value === null ? `` : value };
                 }
@@ -260,7 +299,15 @@ export default function ListAllPage() {
             },
             ...Object.entries(filtered)
               .map(([key, value]) => {
-                if (key !== "status" && key !== "user_id" && key !== "id") {
+                if (
+                  key !== "status" &&
+                  key !== "user_id" &&
+                  key !== "id" &&
+                  key !== "normal_num" &&
+                  key !== "date_num" &&
+                  key !== "special_num" &&
+                  key !== "special_file_path"
+                ) {
                   return { key, content: value === null ? `` : value };
                 }
               })
@@ -283,18 +330,14 @@ export default function ListAllPage() {
 
   function onRenderTable(status: status) {
     switch (status) {
-      case "대기": {
+      case "대기":
         return <WaitTable />;
-      }
-      case "승인": {
+      case "승인":
         return <ApprovalTable />;
-      }
-      case "반려": {
+      case "반려":
         return <RefuseTable />;
-      }
-      default: {
+      default:
         return <WaitTable />;
-      }
     }
   }
 
@@ -325,7 +368,25 @@ export default function ListAllPage() {
             <Button
               variant="blue"
               text="반려처리"
-              onClick={() => {
+              onClick={async () => {
+                if (!selectedId) return;
+                const { error } = await supabase
+                  .from("vacation")
+                  .update({ status: "반려", refuse_reason: refuseReason })
+                  .eq("id", selectedId);
+                if (error) {
+                  showToast(`반려 실패: ${error.message}`);
+                  return;
+                }
+                setVacationIfChanged(
+                  (vacation ?? []).map((v) =>
+                    v.id === selectedId
+                      ? { ...v, status: "반려", refuse_reason: refuseReason }
+                      : v
+                  )
+                );
+                setRefuseReason("");
+                setSelectedId(null);
                 setOpen(false);
                 showToast("반려 처리 되었습니다.");
               }}
