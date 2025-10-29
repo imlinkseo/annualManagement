@@ -31,6 +31,7 @@ export default function ListAllPage() {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [refuseReason, setRefuseReason] = useState("");
+  const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const { showToast } = useToast();
 
   const setEmployeeIfChanged = (next: employee[] | null) =>
@@ -62,38 +63,21 @@ export default function ListAllPage() {
       .select(
         "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason, date_num"
       );
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setVacationIfChanged(data ?? null);
-    }
+    if (error) console.error(error.message);
+    else setVacationIfChanged(data ?? null);
   };
 
   useEffect(() => {
-    if (!user) {
-    } else {
-      if (user?.id) {
-        fetchEmployees();
-        fetchVacation();
-      }
+    if (user?.id) {
+      fetchEmployees();
+      fetchVacation();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, []);
 
   const TAB_ITEMS = [
-    {
-      label: `대기중`,
-      value: `대기` as status,
-    },
-    {
-      label: `승인`,
-      value: `승인` as status,
-    },
-    {
-      label: `반려`,
-      value: `반려` as status,
-    },
+    { label: `대기중`, value: `대기` as status },
+    { label: `승인`, value: `승인` as status },
+    { label: `반려`, value: `반려` as status },
   ];
 
   function onChangeStatus(value: status) {
@@ -263,7 +247,11 @@ export default function ListAllPage() {
                   key !== "status" &&
                   key !== "user_id" &&
                   key !== "id" &&
-                  key !== "refuse_reason"
+                  key !== "refuse_reason" &&
+                  key !== "normal_num" &&
+                  key !== "date_num" &&
+                  key !== "special_num" &&
+                  key !== "special_file_path"
                 ) {
                   return { key, content: value === null ? `` : value };
                 }
@@ -312,7 +300,15 @@ export default function ListAllPage() {
             },
             ...Object.entries(filtered)
               .map(([key, value]) => {
-                if (key !== "status" && key !== "user_id" && key !== "id") {
+                if (
+                  key !== "status" &&
+                  key !== "user_id" &&
+                  key !== "id" &&
+                  key !== "normal_num" &&
+                  key !== "date_num" &&
+                  key !== "special_num" &&
+                  key !== "special_file_path"
+                ) {
                   return { key, content: value === null ? `` : value };
                 }
               })
@@ -335,19 +331,38 @@ export default function ListAllPage() {
 
   function onRenderTable(status: status) {
     switch (status) {
-      case "대기": {
+      case "대기":
         return <WaitTable />;
-      }
-      case "승인": {
+      case "승인":
         return <ApprovalTable />;
-      }
-      case "반려": {
+      case "반려":
         return <RefuseTable />;
-      }
-      default: {
+      default:
         return <WaitTable />;
-      }
     }
+  }
+
+  async function onClickRefuseModalButton() {
+    if (!selectedId) return;
+    const { error } = await supabase
+      .from("vacation")
+      .update({ status: "반려", refuse_reason: refuseReason })
+      .eq("id", selectedId);
+    if (error) {
+      showToast(`반려 실패: ${error.message}`);
+      return;
+    }
+    setVacationIfChanged(
+      (vacation ?? []).map((v) =>
+        v.id === selectedId
+          ? { ...v, status: "반려", refuse_reason: refuseReason }
+          : v
+      )
+    );
+    setRefuseReason("");
+    setSelectedId(null);
+    setOpen(false);
+    showToast("반려 처리 되었습니다.");
   }
 
   async function onClickRefuseModalButton() {

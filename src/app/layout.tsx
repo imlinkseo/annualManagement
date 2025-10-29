@@ -31,22 +31,19 @@ export default async function RootLayout({
     }
   );
 
-  const { data: userRes } = await supabase.auth.getUser();
-  const authUser = userRes?.user ?? null;
+  const { data: s } = await supabase.auth.getSession();
+  const authUser =
+    s.session?.user ?? (await supabase.auth.getUser()).data.user ?? null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let initialEmployee: any = null;
-
+  let initialEmployee: any | null = null;
   if (authUser?.id) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("employees_with_unused")
       .select("*")
       .eq("user_id", authUser.id)
       .maybeSingle();
-
-    if (!error && data) {
-      initialEmployee = data;
-    }
+    initialEmployee = data ?? null;
   }
 
   return (
@@ -54,7 +51,7 @@ export default async function RootLayout({
       <body>
         <ToastProvider>
           <AuthStoreProvider
-            initialUser={authUser}
+            initialUser={authUser ?? null}
             initialEmployee={initialEmployee}
           >
             <div id="wrapper">

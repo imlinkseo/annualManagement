@@ -67,3 +67,8 @@ export interface formData {
   date_num: number;
   file: file | null;
 }
+export interface Special {
+  id?: number;
+  name?: string;
+  num?: string;
+}
