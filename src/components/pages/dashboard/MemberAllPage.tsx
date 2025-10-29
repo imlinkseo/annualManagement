@@ -47,6 +47,7 @@ export default function MemberAllPage() {
 
   useEffect(() => {
     if (!user) {
+      router.push("/login");
     } else {
       if (user?.id) {
         fetchEmployees();

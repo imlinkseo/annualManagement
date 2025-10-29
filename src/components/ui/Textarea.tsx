@@ -25,7 +25,12 @@ const Textarea = forwardRef<HTMLTextAreaElement, Props>(
         {label && <Label label={label} required={props.required} name={name} />}
         <textarea
           ref={ref}
-          className={cn(styles.ctn, className)}
+          className={cn(
+            styles.ctn,
+            className,
+            styles.text.value,
+            styles.text.placeholder
+          )}
           onChange={(e) => onChangeValue && onChangeValue(e.target.value)}
           required={props.required}
           name={name}

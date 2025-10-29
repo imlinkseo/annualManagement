@@ -17,8 +17,8 @@ export interface employee {
 export interface employee_with_unused extends employee {
   vacation_unused?: string;
 }
-export type status = "대기" | "승인" | "반려";
-export interface vacation {
+export type Status = "대기" | "승인" | "반려";
+export interface Vacation {
   id?: string;
   type: string;
   time?: string | null;
@@ -61,7 +61,7 @@ export interface formData {
   startDate: Date | undefined;
   endDate: Date | undefined;
   reason: string;
-  status: status;
+  status: Status;
   normal_num: number;
   special_num: number;
   date_num: number;

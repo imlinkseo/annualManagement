@@ -29,6 +29,7 @@ export default function ListAllPage() {
   const [employees, setEmployees] = useState<employee[] | null>(null);
   const [vacation, setVacation] = useState<vacation[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [refuseReason, setRefuseReason] = useState("");
   const { showToast } = useToast();
 
@@ -59,7 +60,7 @@ export default function ListAllPage() {
     const { data, error } = await supabase
       .from("vacation")
       .select(
-        "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason"
+        "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason, date_num"
       );
 
     if (error) {
@@ -113,12 +114,62 @@ export default function ListAllPage() {
       { key: `refuse`, label: `반려`, width: `w-[100px]` },
     ];
 
-    function onClickApprovalButton() {
-      console.log("onClickApprovalButton");
+    async function onClickApprovalButton(item: vacation) {
+      const dateNum = item.date_num === undefined ? 0 : parseInt(item.date_num);
+      const { data: updated, error: upErr } = await supabase
+        .from("vacation")
+        .update({ status: "승인" })
+        .eq("id", item.id)
+        .eq("status", "대기")
+        .select("id, status")
+        .maybeSingle();
+
+      if (upErr) {
+        showToast(`승인 실패: ${upErr.message}`);
+        return;
+      }
+      if (!updated) {
+        showToast("이미 처리된 신청서입니다.");
+        return;
+      }
+
+      if (dateNum > 0) {
+        const { data: emp, error: empErr } = await supabase
+          .from("employees")
+          .select("vacation_used, vacation_rest")
+          .eq("user_id", item.user_id)
+          .single();
+
+        if (empErr) {
+          showToast(`직원 정보 조회 실패: ${empErr.message}`);
+          return;
+        }
+
+        const nextUsed = Number(emp.vacation_used ?? 0) + dateNum;
+        const nextRest = Number(emp.vacation_rest ?? 0) - dateNum;
+
+        const { error: updEmpErr } = await supabase
+          .from("employees")
+          .update({ vacation_used: nextUsed, vacation_rest: nextRest })
+          .eq("user_id", item.user_id);
+
+        if (updEmpErr) {
+          showToast(`직원 연차 반영 실패: ${updEmpErr.message}`);
+          return;
+        }
+      }
+
+      setVacationIfChanged(
+        (vacation ?? []).map((v) =>
+          v.id === item.id ? { ...v, status: "승인" } : v
+        )
+      );
+      showToast("승인 처리되었습니다.");
     }
-    function onClickRefuseButton() {
+
+    function onClickRefuseButton(id: string) {
+      setSelectedId(id);
       setOpen(true);
-      console.log("onClickRefuseButton");
     }
 
     function onMakeRow(status: status) {
@@ -139,7 +190,8 @@ export default function ListAllPage() {
                   key !== "status" &&
                   key !== "user_id" &&
                   key !== "id" &&
-                  key !== "refuse_reason"
+                  key !== "refuse_reason" &&
+                  key !== "date_num"
                 ) {
                   return { key, content: value === null ? `` : value };
                 }
@@ -151,7 +203,7 @@ export default function ListAllPage() {
                 <Button
                   variant="green"
                   text="승인"
-                  onClick={onClickApprovalButton}
+                  onClick={() => onClickApprovalButton(filtered)}
                 />
               ),
             },
@@ -161,7 +213,7 @@ export default function ListAllPage() {
                 <Button
                   variant="red"
                   text="반려"
-                  onClick={onClickRefuseButton}
+                  onClick={() => onClickRefuseButton(filtered.id as string)}
                 />
               ),
             },
@@ -298,6 +350,29 @@ export default function ListAllPage() {
     }
   }
 
+  async function onClickRefuseModalButton() {
+    if (!selectedId) return;
+    const { error } = await supabase
+      .from("vacation")
+      .update({ status: "반려", refuse_reason: refuseReason })
+      .eq("id", selectedId);
+    if (error) {
+      showToast(`반려 실패: ${error.message}`);
+      return;
+    }
+    setVacationIfChanged(
+      (vacation ?? []).map((v) =>
+        v.id === selectedId
+          ? { ...v, status: "반려", refuse_reason: refuseReason }
+          : v
+      )
+    );
+    setRefuseReason("");
+    setSelectedId(null);
+    setOpen(false);
+    showToast("반려 처리 되었습니다.");
+  }
+
   if (!vacation) return <LoadingSpinner />;
 
   return (
@@ -325,10 +400,7 @@ export default function ListAllPage() {
             <Button
               variant="blue"
               text="반려처리"
-              onClick={() => {
-                setOpen(false);
-                showToast("반려 처리 되었습니다.");
-              }}
+              onClick={onClickRefuseModalButton}
               className="px-[32px] py-[14px]"
             />
           </>
