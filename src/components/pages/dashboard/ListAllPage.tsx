@@ -16,7 +16,7 @@ import Button from "@/components/ui/Button";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
-import { status, vacation } from "@/types/types";
+import { Status, Vacation } from "@/types/types";
 import Tab from "@/components/ui/Tab";
 import Textarea from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/Toast";
@@ -25,19 +25,18 @@ const TITLE = `전체 목록`;
 
 export default function ListAllPage() {
   const { user } = useAuthStore();
-  const [status, setStatus] = useState<status>("대기");
+  const [status, setStatus] = useState<Status>("대기");
   const [employees, setEmployees] = useState<employee[] | null>(null);
-  const [vacation, setVacation] = useState<vacation[] | null>(null);
+  const [vacation, setVacation] = useState<Vacation[] | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [refuseReason, setRefuseReason] = useState("");
-  const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const { showToast } = useToast();
 
   const setEmployeeIfChanged = (next: employee[] | null) =>
     setEmployees((prev) => (isDeepEqual(prev, next) ? prev : next));
 
-  const setVacationIfChanged = (next: vacation[] | null) =>
+  const setVacationIfChanged = (next: Vacation[] | null) =>
     setVacation((prev) => (isDeepEqual(prev, next) ? prev : next));
 
   const fetchEmployees = async () => {
@@ -75,12 +74,12 @@ export default function ListAllPage() {
   }, []);
 
   const TAB_ITEMS = [
-    { label: `대기중`, value: `대기` as status },
-    { label: `승인`, value: `승인` as status },
-    { label: `반려`, value: `반려` as status },
+    { label: `대기중`, value: `대기` as Status },
+    { label: `승인`, value: `승인` as Status },
+    { label: `반려`, value: `반려` as Status },
   ];
 
-  function onChangeStatus(value: status) {
+  function onChangeStatus(value: Status) {
     setStatus(value);
   }
 
@@ -98,7 +97,7 @@ export default function ListAllPage() {
       { key: `refuse`, label: `반려`, width: `w-[100px]` },
     ];
 
-    async function onClickApprovalButton(item: vacation) {
+    async function onClickApprovalButton(item: Vacation) {
       const dateNum = item.date_num === undefined ? 0 : parseInt(item.date_num);
       const { data: updated, error: upErr } = await supabase
         .from("vacation")
@@ -156,7 +155,7 @@ export default function ListAllPage() {
       setOpen(true);
     }
 
-    function onMakeRow(status: status) {
+    function onMakeRow(status: Status) {
       return vacation
         ?.filter((item) => item.status === status)
         .map((filtered, idx) => {
@@ -229,7 +228,7 @@ export default function ListAllPage() {
       { key: `reason`, label: `사유`, width: `flex-1` },
     ];
 
-    function onMakeRow(status: status) {
+    function onMakeRow(status: Status) {
       return vacation
         ?.filter((item) => item.status === status)
         .map((filtered, idx) => {
@@ -286,7 +285,7 @@ export default function ListAllPage() {
       { key: `refuse_reason`, label: `반려 사유`, width: `flex-1` },
     ];
 
-    function onMakeRow(status: status) {
+    function onMakeRow(status: Status) {
       return vacation
         ?.filter((item) => item.status === status)
         .map((filtered, idx) => {
@@ -329,7 +328,7 @@ export default function ListAllPage() {
     );
   };
 
-  function onRenderTable(status: status) {
+  function onRenderTable(status: Status) {
     switch (status) {
       case "대기":
         return <WaitTable />;
@@ -340,29 +339,6 @@ export default function ListAllPage() {
       default:
         return <WaitTable />;
     }
-  }
-
-  async function onClickRefuseModalButton() {
-    if (!selectedId) return;
-    const { error } = await supabase
-      .from("vacation")
-      .update({ status: "반려", refuse_reason: refuseReason })
-      .eq("id", selectedId);
-    if (error) {
-      showToast(`반려 실패: ${error.message}`);
-      return;
-    }
-    setVacationIfChanged(
-      (vacation ?? []).map((v) =>
-        v.id === selectedId
-          ? { ...v, status: "반려", refuse_reason: refuseReason }
-          : v
-      )
-    );
-    setRefuseReason("");
-    setSelectedId(null);
-    setOpen(false);
-    showToast("반려 처리 되었습니다.");
   }
 
   async function onClickRefuseModalButton() {
