@@ -1,7 +1,7 @@
-import ViewPage from "@/components/pages/dashboard/ViewPage";
+// import ViewPage from "@/components/pages/dashboard/ViewPage";
 
 const page = () => {
-  return <ViewPage />;
+  // return <ViewPage />;
 };
 
 export default page;

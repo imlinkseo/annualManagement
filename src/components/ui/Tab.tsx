@@ -1,18 +1,18 @@
 import { cn } from "@/lib/utils";
 import React from "react";
-import { status } from "@/types/types";
+import { Status } from "@/types/types";
 
 interface Props {
   items: TabItemProps[];
   currentValue: string;
-  onChange: (value: status) => void;
+  onChange: (value: Status) => void;
 }
 
 interface TabItemProps {
   label: string;
-  value: status;
+  value: Status;
   isSelected?: boolean;
-  onChange?: (value: status) => void;
+  onChange?: (value: Status) => void;
 }
 
 const TabItem = ({ label, value, isSelected, onChange }: TabItemProps) => {

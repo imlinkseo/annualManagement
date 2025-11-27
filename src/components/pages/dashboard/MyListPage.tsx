@@ -7,7 +7,7 @@ import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
 import TableContainer from "@/components/container/TableContainer";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { employee, status, vacation } from "@/types/types";
+import { employee, Status, Vacation } from "@/types/types";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
@@ -16,12 +16,12 @@ import TableTitle from "@/components/table/TableTitle";
 export default function MyListPage() {
   const { user } = useAuthStore();
   const [employee, setEmployee] = useState<employee | null>(null);
-  const [vacation, setVacation] = useState<vacation[] | null>(null);
+  const [vacation, setVacation] = useState<Vacation[] | null>(null);
 
   const setEmployeeIfChanged = (next: employee | null) =>
     setEmployee((prev) => (isDeepEqual(prev, next) ? prev : next));
 
-  const setVacationIfChanged = (next: vacation[] | null) =>
+  const setVacationIfChanged = (next: Vacation[] | null) =>
     setVacation((prev) => (isDeepEqual(prev, next) ? prev : next));
 
   const styles = {
@@ -75,7 +75,7 @@ export default function MyListPage() {
     }
   };
 
-  function onMakeRow(status: status) {
+  function onMakeRow(status: Status) {
     return vacation
       ?.filter((item) => item.status === status)
       .map((filtered, idx) => {
