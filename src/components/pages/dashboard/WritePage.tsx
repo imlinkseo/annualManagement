@@ -1,8 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
-import { useRouter, redirect } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { uploadFormData } from "@/lib/uploadFormData";
 import Button from "@/components/ui/Button";
@@ -21,16 +20,21 @@ import TdTr from "@/components/table/TdTr";
 import Textarea from "@/components/ui/Textarea";
 import SingleFileInput from "@/components/ui/SingleFileInput";
 import { getHolidaySetInRange, isWeekend } from "@/lib/krHolidays";
-import { Special } from "@/types/types";
+import { useSpecialStore } from "@/stores/specialStore";
 
 const initialReason = "개인사유";
 const ERROR_MSG = `*특수연차 일수가 소비할 일수보다 많습니다.*`;
 
 export default function WritePage() {
   const { user, employee } = useAuthStore();
+  const {
+    specials,
+    loading: specialsLoading,
+    refresh: refreshSpecials,
+  } = useSpecialStore();
   const router = useRouter();
-  const [special, setSpecial] = useState<Special[] | null>(null);
   const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
+
   const ymd = (d: Date) => {
     const z = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const yyyy = z.getFullYear();
@@ -38,15 +42,7 @@ export default function WritePage() {
     const dd = String(z.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
   };
-  async function fetchSpecial() {
-    const { data, error } = await supabase.from("special").select("*");
 
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setSpecial(data ?? null);
-    }
-  }
   const isBusinessDay = (d: Date) => !isWeekend(d) && !holidaySet.has(ymd(d));
 
   const countBusinessDays = (start: Date, end: Date) => {
@@ -114,13 +110,21 @@ export default function WritePage() {
   };
 
   useEffect(() => {
-    if (!user) redirect("/login");
-    else if (user.id) {
-      update("userId", user.id);
-      fetchSpecial();
+    if (!user) {
+      router.push("/login");
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    if (user.id) {
+      update("userId", user.id);
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!specials.length && !specialsLoading) {
+      refreshSpecials();
+    }
+  }, [user?.id, specials.length, specialsLoading, refreshSpecials]);
 
   useEffect(() => {
     const s = formData.startDate as Date;
@@ -157,7 +161,23 @@ export default function WritePage() {
     th: `hidden`,
   };
 
-  if (!employee || !special) return <LoadingSpinner />;
+  const isPageLoading = !user || (specialsLoading && specials.length === 0);
+
+  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
+  useEffect(() => {
+    if (!isPageLoading) return;
+
+    const timer = setTimeout(() => {
+      // soft refresh (데이터 refetch용)
+      router.refresh();
+      // 만약 완전 새로고침이 더 안전하다면:
+      // window.location.reload();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isPageLoading, router]);
+
+  if (isPageLoading) return <LoadingSpinner />;
 
   const MainTable = () => {
     const columns: ThProps[] = useMemo(
@@ -248,8 +268,8 @@ export default function WritePage() {
       },
     ];
 
-    const DROPDOWN_ITEMS_VALUE_LABEL = special.map((item) => {
-      return { [`${item.name}: ${item.num}일`]: item.num as string };
+    const DROPDOWN_ITEMS_VALUE_LABEL = specials.map((item) => {
+      return { [`${item.name}: ${item.num}일`]: String(item.num) };
     });
 
     const specialRow = [
@@ -264,7 +284,7 @@ export default function WritePage() {
                 : String(formData.special)
             }
             items={
-              formData.type === "반차"
+              formData.type === "반차" && DROPDOWN_ITEMS_VALUE_LABEL.length
                 ? [DROPDOWN_ITEMS_VALUE_LABEL[0]]
                 : DROPDOWN_ITEMS_VALUE_LABEL
             }
@@ -357,6 +377,8 @@ export default function WritePage() {
       []
     );
 
+    if (!employee) return null;
+
     const rows = [
       [
         { key: `title`, content: `총` },
@@ -368,8 +390,10 @@ export default function WritePage() {
           key: `node`,
           content: (
             <Text>
-              기존 ({employee.vacation_used}) + 소비 ({formData.date_num}) = 총
-              ({employee.vacation_used || 0 + formData.date_num})일
+              기존 ({employee.vacation_used}) + 소비 ({formData.date_num}) = 총(
+              {(parseInt(employee.vacation_used as string) || 0) +
+                formData.date_num}
+              )일
             </Text>
           ),
         },

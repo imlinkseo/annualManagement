@@ -1,77 +1,53 @@
 "use client";
-import { cn, isDeepEqual } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabaseClient";
-
-import { employee } from "@/types/types";
 import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
 import TableContainer from "@/components/container/TableContainer";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Modal from "@/components/ui/Modal";
-
 import Button from "@/components/ui/Button";
-
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
-import { Status, Vacation } from "@/types/types";
+import { Status, Vacation, employee } from "@/types/types";
 import Tab from "@/components/ui/Tab";
 import Textarea from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/Toast";
+import { useVacationStore } from "@/stores/vacationStore";
 
 const TITLE = `전체 목록`;
 
 export default function ListAllPage() {
   const { user } = useAuthStore();
+  const { employees, vacation, loading, refresh, setVacation } =
+    useVacationStore();
+  const router = useRouter();
   const [status, setStatus] = useState<Status>("대기");
-  const [employees, setEmployees] = useState<employee[] | null>(null);
-  const [vacation, setVacation] = useState<Vacation[] | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [refuseReason, setRefuseReason] = useState("");
   const { showToast } = useToast();
 
-  const setEmployeeIfChanged = (next: employee[] | null) =>
-    setEmployees((prev) => (isDeepEqual(prev, next) ? prev : next));
-
-  const setVacationIfChanged = (next: Vacation[] | null) =>
-    setVacation((prev) => (isDeepEqual(prev, next) ? prev : next));
-
-  const fetchEmployees = async () => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("name, user_id");
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setEmployeeIfChanged(data ?? null);
-    }
-  };
-
   const styles = {
     ctn: `my-[80px] flex flex-col gap-[34px] w-[1600px]`,
-    modalBtn: `px-4 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all`,
-  };
-
-  const fetchVacation = async () => {
-    const { data, error } = await supabase
-      .from("vacation")
-      .select(
-        "type, category, special, start_date, end_date, reason, status, id, user_id, refuse_reason, date_num"
-      );
-    if (error) console.error(error.message);
-    else setVacationIfChanged(data ?? null);
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchEmployees();
-      fetchVacation();
+    if (!employees.length || !vacation.length) {
+      refresh();
     }
-  }, []);
+  }, [employees.length, vacation.length, refresh]);
+
+  useEffect(() => {
+    console.log("vacationLoading", loading);
+    console.log("user", user);
+    console.log("employees", employees);
+    console.log("vacation", vacation);
+  }, [loading, user, employees, vacation]);
 
   const TAB_ITEMS = [
     { label: `대기중`, value: `대기` as Status },
@@ -142,10 +118,8 @@ export default function ListAllPage() {
         }
       }
 
-      setVacationIfChanged(
-        (vacation ?? []).map((v) =>
-          v.id === item.id ? { ...v, status: "승인" } : v
-        )
+      setVacation((prev) =>
+        prev.map((v) => (v.id === item.id ? { ...v, status: "승인" } : v))
       );
       showToast("승인 처리되었습니다.");
     }
@@ -155,17 +129,22 @@ export default function ListAllPage() {
       setOpen(true);
     }
 
+    function getNameByUserId(userId: string | number) {
+      const found = employees.find(
+        (employee: employee) => employee.user_id === userId
+      );
+      return found ? found.name : "";
+    }
+
     function onMakeRow(status: Status) {
       return vacation
-        ?.filter((item) => item.status === status)
+        .filter((item) => item.status === status)
         .map((filtered, idx) => {
           const row = [
             { key: "no", content: idx + 1 },
             {
               key: "name",
-              content: employees?.filter(
-                (employee) => filtered.user_id === employee.user_id
-              )[0].name,
+              content: getNameByUserId(filtered?.user_id as string),
             },
             ...Object.entries(filtered)
               .map(([key, value]) => {
@@ -228,17 +207,22 @@ export default function ListAllPage() {
       { key: `reason`, label: `사유`, width: `flex-1` },
     ];
 
+    function getNameByUserId(userId: string | number) {
+      const found = employees.find(
+        (employee: employee) => employee.user_id === userId
+      );
+      return found ? found.name : "";
+    }
+
     function onMakeRow(status: Status) {
       return vacation
-        ?.filter((item) => item.status === status)
+        .filter((item) => item.status === status)
         .map((filtered, idx) => {
           const row = [
             { key: "no", content: idx + 1 },
             {
               key: "name",
-              content: employees?.filter(
-                (employee) => filtered.user_id === employee.user_id
-              )[0].name,
+              content: getNameByUserId(filtered?.user_id as string),
             },
             ...Object.entries(filtered)
               .map(([key, value]) => {
@@ -285,17 +269,22 @@ export default function ListAllPage() {
       { key: `refuse_reason`, label: `반려 사유`, width: `flex-1` },
     ];
 
+    function getNameByUserId(userId: string | number) {
+      const found = employees.find(
+        (employee: employee) => employee.user_id === userId
+      );
+      return found ? found.name : "";
+    }
+
     function onMakeRow(status: Status) {
       return vacation
-        ?.filter((item) => item.status === status)
+        .filter((item) => item.status === status)
         .map((filtered, idx) => {
           const row = [
             { key: "no", content: idx + 1 },
             {
               key: "name",
-              content: employees?.filter(
-                (employee) => filtered.user_id === employee.user_id
-              )[0].name,
+              content: getNameByUserId(filtered?.user_id as string),
             },
             ...Object.entries(filtered)
               .map(([key, value]) => {
@@ -351,8 +340,8 @@ export default function ListAllPage() {
       showToast(`반려 실패: ${error.message}`);
       return;
     }
-    setVacationIfChanged(
-      (vacation ?? []).map((v) =>
+    setVacation((prev) =>
+      prev.map((v) =>
         v.id === selectedId
           ? { ...v, status: "반려", refuse_reason: refuseReason }
           : v
@@ -364,7 +353,22 @@ export default function ListAllPage() {
     showToast("반려 처리 되었습니다.");
   }
 
-  if (!vacation) return <LoadingSpinner />;
+  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
+  useEffect(() => {
+    if (!loading) return;
+
+    const timer = setTimeout(() => {
+      // soft refresh (데이터 refetch용)
+      router.refresh();
+      // 만약 완전 새로고침이 더 안전하다면:
+      // window.location.reload();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [loading, router]);
+
+  if (loading && !employees.length && !vacation.length)
+    return <LoadingSpinner />;
 
   return (
     <>

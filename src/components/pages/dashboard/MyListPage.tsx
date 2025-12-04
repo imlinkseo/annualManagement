@@ -1,28 +1,33 @@
 "use client";
-import { cn, isDeepEqual } from "@/lib/utils";
-import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { supabase } from "@/lib/supabaseClient";
 import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
 import TableContainer from "@/components/container/TableContainer";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { employee, Status, Vacation } from "@/types/types";
+import { Status, employee as EmployeeType } from "@/types/types";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
 import TableTitle from "@/components/table/TableTitle";
+import { useEmployeesStore } from "@/stores/employeesStore";
+import { useMyVacationsStore } from "@/stores/myVacationStore";
 
 export default function MyListPage() {
   const { user } = useAuthStore();
-  const [employee, setEmployee] = useState<employee | null>(null);
-  const [vacation, setVacation] = useState<Vacation[] | null>(null);
-
-  const setEmployeeIfChanged = (next: employee | null) =>
-    setEmployee((prev) => (isDeepEqual(prev, next) ? prev : next));
-
-  const setVacationIfChanged = (next: Vacation[] | null) =>
-    setVacation((prev) => (isDeepEqual(prev, next) ? prev : next));
+  const router = useRouter();
+  const {
+    employees,
+    loading: employeesLoading,
+    refresh: refreshEmployees,
+  } = useEmployeesStore();
+  const {
+    vacations,
+    loading: vacationsLoading,
+    refresh: refreshVacations,
+  } = useMyVacationsStore();
 
   const styles = {
     ctn: `w-[1600px] my-[80px] flex flex-col gap-[34px]`,
@@ -47,37 +52,28 @@ export default function MyListPage() {
     []
   );
 
-  const fetchEmployee = async () => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("user_id", user?.id);
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setEmployeeIfChanged(data?.[0] ?? null);
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!employees.length && !employeesLoading) {
+      refreshEmployees();
     }
-  };
+  }, [user?.id, employees.length, employeesLoading, refreshEmployees]);
 
-  const fetchVacation = async () => {
-    const { data, error } = await supabase
-      .from("vacation")
-      .select(
-        "type, category, time, special, start_date, end_date, reason, status, normal_num, special_num, date_num, id"
-      )
-      .eq("user_id", user?.id);
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setVacationIfChanged(data ?? null);
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!vacations.length && !vacationsLoading) {
+      refreshVacations(user.id);
     }
-  };
+  }, [user?.id, vacations.length, vacationsLoading, refreshVacations]);
+
+  const me: EmployeeType | null = useMemo(() => {
+    if (!user?.id) return null;
+    return employees.find((e) => e.user_id === user.id) ?? null;
+  }, [employees, user?.id]);
 
   function onMakeRow(status: Status) {
-    return vacation
-      ?.filter((item) => item.status === status)
+    return vacations
+      .filter((item) => item.status === status)
       .map((filtered, idx) => {
         const row = [
           { key: "no", content: idx + 1 },
@@ -94,19 +90,32 @@ export default function MyListPage() {
       });
   }
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchEmployee();
-      fetchVacation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  const isPageLoading =
+    !user ||
+    (!me && employeesLoading) ||
+    (!vacations.length && vacationsLoading);
 
-  if (!employee) return <LoadingSpinner />;
+  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
+  useEffect(() => {
+    if (!isPageLoading) return;
+
+    const timer = setTimeout(() => {
+      // soft refresh (데이터 refetch용)
+      router.refresh();
+      // 만약 완전 새로고침이 더 안전하다면:
+      // window.location.reload();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isPageLoading, router]);
+
+  if (isPageLoading) return <LoadingSpinner />;
+
+  if (!me) return <LoadingSpinner />;
 
   return (
     <PageContainer className={cn(styles.ctn)}>
-      <PageTitle title={employee.name + "님"} type="big" />
+      <PageTitle title={me.name + "님"} type="big" />
       <div className={cn(styles.tableCtn)}>
         <TableTitle title={"대기중"} />
         <TableContainer>

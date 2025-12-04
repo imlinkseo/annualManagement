@@ -6,6 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import AuthStoreProvider from "@/providers/AuthStoreProvider";
 import Header from "@/components/ui/Header";
 import { ToastProvider } from "@/components/ui/Toast";
+import AuthInit from "@/stores/AutoInit";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -54,10 +55,12 @@ export default async function RootLayout({
             initialUser={authUser ?? null}
             initialEmployee={initialEmployee}
           >
-            <div id="wrapper">
-              <Header />
-              <section id="contents">{children}</section>
-            </div>
+            <AuthInit>
+              <div id="wrapper">
+                <Header />
+                <section id="contents">{children}</section>
+              </div>
+            </AuthInit>
           </AuthStoreProvider>
         </ToastProvider>
       </body>

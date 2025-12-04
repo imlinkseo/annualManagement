@@ -1,12 +1,9 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { useEffect, useId, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-
 import { useAuthStore } from "@/stores/authStore";
-import { supabase } from "@/lib/supabaseClient";
-
-import { employee } from "@/types/types";
+import { useEmployeesStore } from "@/stores/employeesStore";
 import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
 import TableContainer from "@/components/container/TableContainer";
@@ -15,43 +12,18 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
+import { employee as EmployeeType } from "@/types/types";
 
 const TITLE = `전체 멤버`;
 
 export default function MemberAllPage() {
   const { user, employee } = useAuthStore();
-  const [employees, setEmployees] = useState<employee[] | null>(null);
+  const { employees, loading, refresh } = useEmployeesStore();
   const router = useRouter();
-  const id = useId();
-
-  const fetchEmployees = async () => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select(
-        "name, team, level, joined_date, vacation_generated_date, vacation_expiry_date, vacation_total, vacation_used, vacation_rest, full_used_date, half_used_date"
-      );
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setEmployees(data ?? null);
-    }
-  };
 
   const styles = {
     ctn: `my-[80px] flex flex-col gap-[34px] w-[1600px]`,
   };
-
-  useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    } else {
-      if (user?.id) {
-        fetchEmployees();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const columns: ThProps[] = [
     { key: `name`, label: `이름`, width: `w-[100px]` },
@@ -67,23 +39,43 @@ export default function MemberAllPage() {
     { key: `half_used_date`, label: `반차 사용 날짜`, width: `flex-1` },
   ];
 
-  function onMakeRow(name: string) {
-    if (!employees) return;
-    return employees.map((item, idx) => {
-      const isMe = item.name === name;
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!employees.length && !loading) {
+      refresh();
+    }
+  }, [employees.length, loading, refresh]);
+
+  function onLinkMyList() {
+    router.push("/myList");
+  }
+
+  function onMakeRow(myName?: string) {
+    return employees.map((item: EmployeeType, idx) => {
+      const isMe = myName ? item.name === myName : false;
+
       const row = Object.entries(item)
         .map(([key, value]) => {
-          if (key !== "created_at" && key !== "id" && key !== "user_id")
+          if (key !== "created_at" && key !== "id" && key !== "user_id") {
             return {
-              key: key,
+              key,
               content: value === null ? `` : value.toString(),
             };
+          }
         })
-        .filter((cell) => cell !== undefined);
+        .filter((cell) => cell !== undefined) as {
+        key: string;
+        content: string;
+      }[];
 
       return (
         <TdTr
-          key={id + `tr` + idx}
+          key={String(item.id ?? item.user_id ?? idx)}
           columns={columns}
           row={row}
           isMe={isMe}
@@ -93,11 +85,23 @@ export default function MemberAllPage() {
     });
   }
 
-  function onLinkMyList() {
-    router.push("/myList");
-  }
+  const isPageLoading = loading && !employees.length;
 
-  if (!employees || !employee) return <LoadingSpinner />;
+  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
+  useEffect(() => {
+    if (!isPageLoading) return;
+
+    const timer = setTimeout(() => {
+      // soft refresh (데이터 refetch용)
+      router.refresh();
+      // 만약 완전 새로고침이 더 안전하다면:
+      // window.location.reload();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isPageLoading, router]);
+
+  if (isPageLoading) return <LoadingSpinner />;
 
   return (
     <PageContainer className={cn(styles.ctn)}>

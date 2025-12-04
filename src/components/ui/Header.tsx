@@ -29,7 +29,6 @@ const Header = () => {
         setIsLogin(true);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   function onLinkMain() {
@@ -37,7 +36,9 @@ const Header = () => {
   }
 
   function onLogout() {
+    console.log("onLogout");
     logout();
+    router.push("/login");
   }
   function onLogin() {
     router.push("/login");

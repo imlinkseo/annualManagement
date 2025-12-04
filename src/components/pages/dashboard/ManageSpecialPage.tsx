@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
@@ -15,14 +16,20 @@ import TdTr from "@/components/table/TdTr";
 import { Special } from "@/types/types";
 import { useToast } from "@/components/ui/Toast";
 import InputText from "@/components/ui/InputText";
+import { useSpecialStore } from "@/stores/specialStore";
 
 const TITLE = `특수 연차 관리`;
 
 export default function ManageSpecialPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
+  const { specials, loading, hasLoaded, refresh, setSpecials } =
+    useSpecialStore();
+
   const [isOpen, setIsOpen] = useState(false);
-  const [special, setSpecial] = useState<Special[] | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const { showToast } = useToast();
+
   const initialNewSpecialData: Special = {
     name: ``,
     num: ``,
@@ -30,6 +37,38 @@ export default function ManageSpecialPage() {
   const [newSpecialData, setNewSpecialData] = useState<Special>(
     initialNewSpecialData
   );
+
+  const styles = {
+    ctn: `my-[80px] flex flex-col gap-[34px] w-[1600px]`,
+    buttonCtn: `w-full flex justify-center`,
+    th: `hidden`,
+    modalBtn: `px-4 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all`,
+  };
+
+  // ✅ 이 탭에서 처음 진입했을 때만 서버에서 한 번 가져오기
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!user?.id) {
+        setPageLoading(false);
+        return;
+      }
+
+      // 이미 한 번 불러온 탭이면 굳이 또 안 불러도 됨
+      if (!hasLoaded) {
+        await refresh();
+      }
+
+      if (!cancelled) setPageLoading(false);
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, hasLoaded, refresh]);
 
   const onRenderModalContent = () => {
     const columns: ThProps[] = [
@@ -63,6 +102,7 @@ export default function ManageSpecialPage() {
         },
       ],
     ];
+
     return (
       <TableContainer className="w-full border-neutral-300">
         <thead>
@@ -81,16 +121,6 @@ export default function ManageSpecialPage() {
     setNewSpecialData((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function fetchSpecial() {
-    const { data, error } = await supabase.from("special").select("*");
-
-    if (error) {
-      console.error("데이터 가져오기 오류:", error.message);
-    } else {
-      setSpecial(data ?? null);
-    }
-  }
-
   async function deleteSpecial(id: number) {
     if (!id) return;
     const { error } = await supabase
@@ -103,7 +133,7 @@ export default function ManageSpecialPage() {
       console.error("삭제 오류:", error.message);
       return;
     }
-    setSpecial((prev) => (prev ? prev.filter((item) => item.id !== id) : prev));
+    setSpecials((prev) => prev.filter((item) => item.id !== id));
     showToast("삭제 되었습니다.");
   }
 
@@ -113,21 +143,25 @@ export default function ManageSpecialPage() {
       num: Number(newSpecialData.num),
     };
 
-    const { error } = await supabase.from("special").insert(payload);
+    const { data, error } = await supabase
+      .from("special")
+      .insert(payload)
+      .select("*")
+      .maybeSingle();
+
     if (error) {
       console.error("데이터 가져오기 오류:", error.message);
     } else {
-      fetchSpecial();
+      if (data) {
+        setSpecials((prev) => [...prev, data as Special]);
+      } else {
+        await refresh();
+      }
+      setNewSpecialData(initialNewSpecialData);
       setIsOpen(false);
       showToast("등록 되었습니다.");
     }
   }
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchSpecial();
-    }
-  }, [user]);
 
   function onClickDeleteButton(id: number) {
     deleteSpecial(id);
@@ -140,40 +174,29 @@ export default function ManageSpecialPage() {
     { key: `del`, label: `삭제`, width: `w-[200px]` },
   ];
 
-  function onMakeRow(special: Special[] | null) {
-    if (!special) {
-      return;
-    } else {
-      return special.map((item, idx) => {
-        const row = [
-          { key: `no`, content: idx + 1 },
-          { key: `name`, content: item.name },
-          { key: `num`, content: item.num },
-          {
-            key: `del`,
-            content: (
-              <Button
-                variant="red"
-                text="삭제"
-                onClick={() => {
-                  onClickDeleteButton(item?.id || 0);
-                }}
-              />
-            ),
-          },
-        ];
+  function onMakeRow(specials: Special[]) {
+    return specials.map((item, idx) => {
+      const row = [
+        { key: `no`, content: idx + 1 },
+        { key: `name`, content: item.name },
+        { key: `num`, content: item.num },
+        {
+          key: `del`,
+          content: (
+            <Button
+              variant="red"
+              text="삭제"
+              onClick={() => {
+                onClickDeleteButton(item?.id || 0);
+              }}
+            />
+          ),
+        },
+      ];
 
-        return <TdTr key={item.id} columns={columns} row={row} />;
-      });
-    }
+      return <TdTr key={item.id} columns={columns} row={row} />;
+    });
   }
-
-  const styles = {
-    ctn: `my-[80px] flex flex-col gap-[34px] w-[1600px]`,
-    buttonCtn: `w-full flex justify-center`,
-    th: `hidden`,
-    modalBtn: `px-4 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all`,
-  };
 
   function onClickRegisterNewButton() {
     setIsOpen(true);
@@ -183,7 +206,23 @@ export default function ManageSpecialPage() {
     registerNewSpecial(newSpecialData);
   }
 
-  if (!special) return <LoadingSpinner />;
+  const isPageLoading = pageLoading || (loading && !hasLoaded);
+
+  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
+  useEffect(() => {
+    if (!isPageLoading) return;
+
+    const timer = setTimeout(() => {
+      // soft refresh (데이터 refetch용)
+      router.refresh();
+      // 만약 완전 새로고침이 더 안전하다면:
+      // window.location.reload();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isPageLoading, router]);
+
+  if (isPageLoading) return <LoadingSpinner />;
 
   return (
     <>
@@ -193,7 +232,7 @@ export default function ManageSpecialPage() {
           <thead>
             <ThTr columns={columns} />
           </thead>
-          <tbody>{onMakeRow(special)}</tbody>
+          <tbody>{onMakeRow(specials)}</tbody>
         </TableContainer>
         <div className={cn(styles.buttonCtn)}>
           <Button
