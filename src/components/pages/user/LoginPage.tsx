@@ -9,7 +9,7 @@ const LoginPage = () => {
   const { user, loading } = useAuthStore();
 
   useEffect(() => {
-    if (user?.id) {
+    if (user) {
       redirect("/");
     }
   }, [loading, user]);

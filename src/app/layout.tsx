@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import pretendard from "@/fonts/pretendard";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import AuthStoreProvider from "@/providers/AuthStoreProvider";
 import Header from "@/components/ui/Header";
 import { ToastProvider } from "@/components/ui/Toast";
-import AuthInit from "@/stores/AutoInit";
+import RootClientWrapper from "@/providers/RootClientWrapper";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,32 +18,46 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: async (key) => (await cookieStore).get(key)?.value,
-        set: () => {},
-        remove: () => {},
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options: CookieOptions;
+          }[]
+        ) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {}
+        },
       },
     }
   );
 
-  const { data: s } = await supabase.auth.getSession();
-  const authUser =
-    s.session?.user ?? (await supabase.auth.getUser()).data.user ?? null;
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let initialEmployee: any | null = null;
+  let initialEmployee: unknown | null = null;
+
   if (authUser?.id) {
     const { data } = await supabase
       .from("employees_with_unused")
       .select("*")
       .eq("user_id", authUser.id)
       .maybeSingle();
+
     initialEmployee = data ?? null;
   }
 
@@ -55,12 +69,12 @@ export default async function RootLayout({
             initialUser={authUser ?? null}
             initialEmployee={initialEmployee}
           >
-            <AuthInit>
+            <RootClientWrapper>
               <div id="wrapper">
                 <Header />
                 <section id="contents">{children}</section>
               </div>
-            </AuthInit>
+            </RootClientWrapper>
           </AuthStoreProvider>
         </ToastProvider>
       </body>

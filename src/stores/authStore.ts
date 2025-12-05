@@ -2,16 +2,15 @@
 "use client";
 
 import { create } from "zustand";
-import { supabase } from "@/lib/supabaseClient"; // createBrowserClient로 만든 클라 클라이언트여야 함
-import type { employee_with_unused } from "@/types/types";
 import { subscribeWithSelector } from "zustand/middleware";
+import { supabase } from "@/lib/supabaseClient";
+import type { employee } from "@/types/types";
 
-// Supabase 타입 추론(프로젝트 supabaseClient에서 가져옴)
 type User = Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"];
 type SessionLike = Awaited<
   ReturnType<typeof supabase.auth.getSession>
 >["data"]["session"];
-type Employee = employee_with_unused;
+type Employee = employee;
 
 type AuthState = {
   user: User | null;
@@ -21,128 +20,167 @@ type AuthState = {
 };
 
 type AuthActions = {
-  /** SSR에서 받은 초기값 주입 */
   init: (opts?: {
     initialUser?: User | null;
     initialEmployee?: Employee | null;
   }) => void;
-
-  /** 인증/세션/employee 최신화(앱 진입 시 1회 + 필요 시 호출) */
   refreshAuth: () => Promise<void>;
-
-  /** 로그인/로그아웃/토큰 갱신 이벤트 구독 시작 → 클린업 반환 */
   startAuthListener: () => () => void;
-
-  /** 현재 employee.id에 대한 realtime 구독 시작 → 클린업 반환 */
   startEmployeeRealtime: () => () => void;
-
-  /** 전역 employee 수동 갱신(낙관적 업데이트 등) */
   setEmployee: (e: Employee | null) => void;
-
-  /** 전체 초기화 */
   clear: () => void;
 };
 
-export const useAuthStore = create<AuthState & AuthActions>()(subscribeWithSelector((set, get) => ({
-  user: null,
-  session: null,
-  employee: null,
-  loading: true,
+export const useAuthStore = create<AuthState & AuthActions>()(
+  subscribeWithSelector((set, get) => ({
+    user: null,
+    session: null,
+    employee: null,
+    loading: true,
 
-  init: ({  initialUser = null, initialEmployee = null } = {}) => {
-    set({
-      session: null,
-      user: initialUser,
-      employee: initialEmployee,
-      loading: false,
-    });
-  },
+    init: ({ initialUser = null, initialEmployee = null } = {}) => {
+      set({
+        user: initialUser,
+        session: null,
+        employee: initialEmployee,
+        loading: false,
+      });
+    },
 
-  setEmployee: (e) => set({ employee: e }),
+    setEmployee: (e) => set({ employee: e }),
 
-  refreshAuth: async () => {
-    set({ loading: true });
+    refreshAuth: async () => {
+      set({ loading: true });
 
-     const { data: u } = await supabase.auth.getUser();  
+      const prevUser = get().user;
+      const prevEmployee = get().employee;
 
-    const user = u.user ?? null;
+      const [{ data: userData }, { data: sessionData }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
 
-    set({ user });
+      const user = userData.user ?? null;
+      const session = sessionData.session ?? null;
 
-    if (user?.id) {
+      // 1) getUser()가 null 이지만 이전에 user가 있던 경우:
+      //    Supabase 쪽 lag 로 보고 기존 상태를 유지한다.
+      if (!user && prevUser) {
+        set({
+          user: prevUser,
+          session,
+          employee: prevEmployee,
+          loading: false,
+        });
+        return;
+      }
+
+      // 2) 실제로 user 가 없는 경우 = 로그아웃된 상태
+      if (!user) {
+        set({
+          user: null,
+          session: null,
+          employee: null,
+          loading: false,
+        });
+        return;
+      }
+
+      // 3) user 는 있는데, employee 를 갱신해야 하는 경우
+      let employee: Employee | null = prevEmployee ?? null;
+
       const { data, error } = await supabase
         .from("employees")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!error) set({ employee: data ?? null });
-      else set({ employee: null });
-    } else {
-      set({ employee: null });
-    }
-
-    set({ loading: false });
-  },
-
-startAuthListener: () => {
-  const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_OUT") {
-     
-      get().clear();
-    
-      return;
-    }
-
-    // 그 외 이벤트(INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED, SIGNED_IN 등)
-    const u = session?.user ?? (await supabase.auth.getUser()).data.user ?? null;
-    const s = session ?? (await supabase.auth.getSession()).data.session ?? null;
-    set({ user: u, session: s });
-
-    if (u?.id) {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_id", u.id)
-        .maybeSingle();
-      set({ employee: !error ? data ?? null : null });
-    } else {
-      set({ employee: null });
-    }
-
-    set({ loading: false });
-  });
-
-  return () => sub.subscription.unsubscribe();
-},
-
-  startEmployeeRealtime: () => {
-    const empId = get().employee?.id;
-    if (!empId) return () => {};
-
-    const ch = supabase
-      .channel("realtime:employees")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "employees",
-          filter: `id=eq.${empId}`,
-        },
-        (payload) => {
-          // payload.new가 없을 수도 있어 기존값 보전
-          set({ employee: (payload.new as Employee) ?? get().employee });
+      if (!error && data) {
+        // 새 데이터가 있으면 무조건 덮어씀
+        employee = data as Employee;
+      } else if (error) {
+        // 에러가 난 경우: 기존 employee 유지
+        console.error("refreshAuth employees_with_unused error", error);
+        employee = prevEmployee ?? null;
+        // employee = prevEmployee
+      } else if (!data) {
+        // rows 가 0인 경우
+        // - user가 바뀐 경우에는 null 로 초기화 (새 계정인데 row가 없다고 판단)
+        // - 같은 user라면 기존 employee 유지
+        if (!prevUser || prevUser.id !== user.id) {
+          employee = null;
         }
-      )
-      .subscribe();
+      }
 
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  },
+      set({
+        user,
+        session,
+        employee,
+        loading: false,
+      });
+    },
 
-  clear: () => {
-    set({ user: null, session: null, employee: null, loading: true });
-  },
-})));
+    startAuthListener: () => {
+      const { data: sub } = supabase.auth.onAuthStateChange(
+        async (event) => {
+          if (event === "SIGNED_OUT") {
+            // 명확한 로그아웃 이벤트에서만 전부 비운다
+            get().clear();
+            return;
+          }
+
+          // SIGNED_IN / TOKEN_REFRESHED 등에서만 실제 리프레시
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            await get().refreshAuth();
+          }
+
+          // INITIAL_SESSION 은 무시 (SSR에서 이미 초기값 전달받았다고 가정)
+        }
+      );
+
+      return () => sub.subscription.unsubscribe();
+    },
+
+    startEmployeeRealtime: () => {
+      const empId = get().employee?.id;
+      if (!empId) return () => {};
+
+      const ch = supabase
+        .channel("realtime:employees")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "employees",
+            filter: `id=eq.${empId}`,
+          },
+          (payload) => {
+            const current = get().employee;
+            if (!current) return;
+
+            set({
+              employee: {
+                ...current,
+                ...(payload.new as Partial<Employee>),
+              },
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(ch);
+      };
+    },
+
+    clear: () => {
+      set({
+        user: null,
+        session: null,
+        employee: null,
+        loading: false,
+      });
+    },
+  }))
+);

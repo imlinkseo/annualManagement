@@ -28,8 +28,16 @@ const JoinPage = () => {
     buttonCtn: `w-full flex flex-col gap-2.5`,
   };
 
+  const formatDateToYYYYMMDD = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const handleJoin = async () => {
     if (joinedDate === undefined) {
+      alert("입사일을 선택해주세요.");
       return;
     }
     if (password !== confirmPassword) {
@@ -85,7 +93,6 @@ const JoinPage = () => {
     };
 
     const vacationGeneratedDate = getRecentVacationGeneratedDate(joinedDate);
-
     const vacationExpiryDate = new Date(vacationGeneratedDate);
     vacationExpiryDate.setFullYear(vacationExpiryDate.getFullYear() + 1);
 
@@ -95,9 +102,9 @@ const JoinPage = () => {
         name,
         team,
         level,
-        joined_date: joinedDate,
-        vacation_generated_date: vacationGeneratedDate,
-        vacation_expiry_date: vacationExpiryDate,
+        joined_date: formatDateToYYYYMMDD(joinedDate),
+        vacation_generated_date: formatDateToYYYYMMDD(vacationGeneratedDate),
+        vacation_expiry_date: formatDateToYYYYMMDD(vacationExpiryDate),
         vacation_total: vacationTotal,
         vacation_used: 0,
         vacation_rest: vacationTotal,

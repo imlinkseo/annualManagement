@@ -39,13 +39,16 @@ export default function DatePicker({ disabled, selected, onSelect }: Props) {
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Content
             sideOffset={8}
-            className="z-[9999] w-auto rounded-md bg-white p-4 shadow-lg"
+            className="z-[9999] min-w-[400px] rounded-md bg-white p-4 shadow-lg"
           >
             <Calendar
               mode="single"
               selected={selected}
               onSelect={handleStartSelect}
               initialFocus
+              captionLayout="dropdown-buttons"
+              fromYear={2000}
+              toYear={2050}
             />
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>

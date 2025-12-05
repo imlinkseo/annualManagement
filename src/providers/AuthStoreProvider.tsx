@@ -20,13 +20,21 @@ export default function AuthStoreProvider({
   const startAuthListener = useAuthStore((s) => s.startAuthListener);
 
   useEffect(() => {
+    // 1) SSR에서 내려준 값으로 초기 상태 세팅 (한 번만)
     init({ initialUser, initialEmployee });
-    refreshAuth();
+
+    // 2) auth 이벤트 리스너 시작 (SIGNED_IN / TOKEN_REFRESHED 등)
     const stop = startAuthListener();
 
-    const onFocus = () => refreshAuth();
+    // 3) 탭 포커스 / 페이지 다시 보일 때만 세션 재검증
+    const onFocus = () => {
+      refreshAuth();
+    };
+
     const onVisible = () => {
-      if (document.visibilityState === "visible") refreshAuth();
+      if (document.visibilityState === "visible") {
+        refreshAuth();
+      }
     };
 
     window.addEventListener("focus", onFocus);

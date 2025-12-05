@@ -136,13 +136,18 @@ export default function WritePage() {
   }, [formData.startDate, formData.endDate, formData.type]);
 
   const handleSubmit = async () => {
+    console.log("✅ handleSubmit 클릭됨");
+
     try {
-      await uploadFormData(formData);
+      console.log("✅ uploadFormData 호출 직전", formData);
+      const res = await uploadFormData(formData);
+      console.log("✅ uploadFormData 응답", res);
+
       alert("신청서가 제출되었습니다.");
       router.push("/myList");
     } catch (e) {
+      console.log("❌ uploadFormData 내부 에러", e);
       alert("제출 중 오류가 발생했습니다.");
-      console.log(e);
     }
   };
 
@@ -391,8 +396,7 @@ export default function WritePage() {
           content: (
             <Text>
               기존 ({employee.vacation_used}) + 소비 ({formData.date_num}) = 총(
-              {(parseInt(employee.vacation_used as string) || 0) +
-                formData.date_num}
+              {Number(employee.vacation_used as string) + formData.date_num}
               )일
             </Text>
           ),
@@ -404,7 +408,7 @@ export default function WritePage() {
           key: `node`,
           content: (
             <Text>
-              {parseInt(employee.vacation_rest as string) - formData.date_num}일
+              {Number(employee.vacation_rest as string) - formData.date_num}일
             </Text>
           ),
         },

@@ -83,7 +83,7 @@ export default function DateRangePicker({
       >
         <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-white rounded-lg p-4 shadow-lg max-w-sm w-full">
+          <Dialog.Panel className="bg-white rounded-lg p-4 shadow-lg max-w-md w-full">
             <div className="flex justify-between items-center mb-2">
               <Dialog.Title className="text-lg font-medium">
                 시작일 선택
@@ -97,6 +97,9 @@ export default function DateRangePicker({
               selected={startDate}
               onSelect={handleStartSelect}
               initialFocus
+              captionLayout="dropdown-buttons"
+              fromYear={2000}
+              toYear={2050}
             />
           </Dialog.Panel>
         </div>
@@ -109,7 +112,7 @@ export default function DateRangePicker({
       >
         <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-white rounded-lg p-4 shadow-lg max-w-sm w-full">
+          <Dialog.Panel className="bg-white rounded-lg p-4 shadow-lg min-w-[400px] ">
             <div className="flex justify-between items-center mb-2">
               <Dialog.Title className="text-lg font-medium">
                 종료일 선택
@@ -127,6 +130,9 @@ export default function DateRangePicker({
                 if (isEndDateDisabled) return true;
                 return startDate ? date < startDate : false;
               }}
+              captionLayout="dropdown-buttons"
+              fromYear={2000}
+              toYear={2050}
             />
           </Dialog.Panel>
         </div>

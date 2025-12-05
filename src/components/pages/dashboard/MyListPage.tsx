@@ -97,6 +97,9 @@ export default function MyListPage() {
 
   // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
   useEffect(() => {
+    console.log(user);
+    console.log(me);
+    console.log(vacations);
     if (!isPageLoading) return;
 
     const timer = setTimeout(() => {

@@ -8,7 +8,6 @@ import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
 import TableContainer from "@/components/container/TableContainer";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import ThTr from "@/components/table/ThTr";
@@ -46,10 +45,9 @@ export default function MemberAllPage() {
   }, [user, router]);
 
   useEffect(() => {
-    if (!employees.length && !loading) {
-      refresh();
-    }
-  }, [employees.length, loading, refresh]);
+    if (!user) return;
+    refresh();
+  }, [user, refresh]);
 
   function onLinkMyList() {
     router.push("/myList");
@@ -87,15 +85,11 @@ export default function MemberAllPage() {
 
   const isPageLoading = loading && !employees.length;
 
-  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
   useEffect(() => {
     if (!isPageLoading) return;
 
     const timer = setTimeout(() => {
-      // soft refresh (데이터 refetch용)
       router.refresh();
-      // 만약 완전 새로고침이 더 안전하다면:
-      // window.location.reload();
     }, 5000);
 
     return () => clearTimeout(timer);

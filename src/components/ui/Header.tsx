@@ -8,11 +8,11 @@ import Logo from "./Logo";
 import SizeContainer from "@/components/container/SizeContainer";
 import Button from "./Button";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+// import {  useEffect } from "react";
 import { useLogout } from "@/hooks/useLogout";
 const Header = () => {
   const { user, employee } = useAuthStore();
-  const [isLogin, setIsLogin] = useState(false);
+  // const [isLogin, setIsLogin] = useState(false);
   const logout = useLogout();
   const router = useRouter();
   const styles = {
@@ -21,24 +21,16 @@ const Header = () => {
     titleCtn: `flex items-center gap-[20px] cursor-pointer`,
   };
 
-  useEffect(() => {
-    if (!user) {
-      setIsLogin(false);
-    } else {
-      if (user?.id) {
-        setIsLogin(true);
-      }
-    }
-  }, [user]);
-
   function onLinkMain() {
     router.push("/");
   }
 
-  function onLogout() {
-    console.log("onLogout");
-    logout();
-    router.push("/login");
+  async function onLogout() {
+    const ok = await logout();
+    console.log(ok);
+    if (!ok) return;
+    router.replace("/login");
+    // router.refresh();
   }
   function onLogin() {
     router.push("/login");
@@ -55,10 +47,10 @@ const Header = () => {
           <div className={cn(styles.titleCtn)}>
             <Nav isAdmin={employee?.is_admin || false} />
             <Button
-              variant={isLogin ? "lightRed" : "lightBlue"}
-              text={isLogin ? "로그아웃" : "로그인"}
+              variant={user ? "lightRed" : "lightBlue"}
+              text={user ? "로그아웃" : "로그인"}
               leftIcon={
-                isLogin ? (
+                user ? (
                   <Image
                     src={"/icon/logout.svg"}
                     alt="logout"
@@ -74,7 +66,7 @@ const Header = () => {
                   />
                 )
               }
-              onClick={isLogin ? onLogout : onLogin}
+              onClick={user ? onLogout : onLogin}
             />
           </div>
         </div>

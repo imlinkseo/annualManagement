@@ -11,9 +11,10 @@ export function useLogout() {
 
     if (error && !error.message.includes("Auth session missing")) {
       alert("로그아웃 실패: " + error.message);
-      return;
+      return false;
     }
 
     clear();
+    return true;
   };
 }
