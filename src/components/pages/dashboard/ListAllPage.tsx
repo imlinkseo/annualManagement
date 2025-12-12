@@ -69,10 +69,8 @@ export default function ListAllPage() {
   };
 
   useEffect(() => {
-    if (!employees.length || !vacation.length) {
-      refresh();
-    }
-  }, [employees.length, vacation.length, refresh]);
+    refresh();
+  }, [refresh]);
 
   const TAB_ITEMS = [
     { label: `대기중`, value: `대기` as TabStatus },
@@ -510,8 +508,7 @@ export default function ListAllPage() {
     return () => clearTimeout(timer);
   }, [loading, router]);
 
-  if (loading && !employees.length && !vacation.length)
-    return <LoadingSpinner />;
+  if (loading && !employees.length && !vacation) return <LoadingSpinner />;
 
   return (
     <>

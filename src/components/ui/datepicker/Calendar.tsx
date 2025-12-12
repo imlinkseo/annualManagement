@@ -151,22 +151,6 @@ export function Calendar({
           <div className="flex items-center gap-2 w-full">
             <div className="w-full">
               <DropDown
-                label={months[currentMonthIndex]}
-                items={monthItems}
-                currentValue={months[currentMonthIndex]}
-                onChangeKey={() => {}}
-                className="w-full"
-                onChangeValue={(value) => {
-                  const monthIndex = Number(value);
-                  setCurrentMonth(
-                    new Date(currentYear, monthIndex, currentMonth.getDate())
-                  );
-                }}
-              />
-            </div>
-
-            <div className="w-full">
-              <DropDown
                 label={`${currentYear}`}
                 items={yearItems}
                 currentValue={`${currentYear}`}
@@ -176,6 +160,21 @@ export function Calendar({
                   const yearNum = Number(value);
                   setCurrentMonth(
                     new Date(yearNum, currentMonthIndex, currentMonth.getDate())
+                  );
+                }}
+              />
+            </div>
+            <div className="w-full">
+              <DropDown
+                label={months[currentMonthIndex]}
+                items={monthItems}
+                currentValue={months[currentMonthIndex]}
+                onChangeKey={() => {}}
+                className="w-full"
+                onChangeValue={(value) => {
+                  const monthIndex = Number(value);
+                  setCurrentMonth(
+                    new Date(currentYear, monthIndex, currentMonth.getDate())
                   );
                 }}
               />

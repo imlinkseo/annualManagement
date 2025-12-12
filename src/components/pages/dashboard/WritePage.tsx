@@ -18,7 +18,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import Textarea from "@/components/ui/Textarea";
-import SingleFileInput from "@/components/ui/SingleFileInput";
+// import SingleFileInput from "@/components/ui/SingleFileInput";
 import { getHolidaySetInRange, isWeekend } from "@/lib/krHolidays";
 import { useSpecialStore } from "@/stores/specialStore";
 
@@ -334,21 +334,21 @@ export default function WritePage() {
       },
     ];
 
-    const fileRow = [
-      { key: `title`, content: `증빙` },
-      {
-        key: `node`,
-        content: (
-          <SingleFileInput
-            id="file"
-            name="file"
-            value={formData.file}
-            onChange={(v) => update("file", v)}
-            placeholder="선택된 파일 없음"
-          />
-        ),
-      },
-    ];
+    // const fileRow = [
+    //   { key: `title`, content: `증빙` },
+    //   {
+    //     key: `node`,
+    //     content: (
+    //       <SingleFileInput
+    //         id="file"
+    //         name="file"
+    //         value={formData.file}
+    //         onChange={(v) => update("file", v)}
+    //         placeholder="선택된 파일 없음"
+    //       />
+    //     ),
+    //   },
+    // ];
 
     return (
       <TableContainer>
@@ -362,9 +362,9 @@ export default function WritePage() {
           {formData.category === "특수" && (
             <TdTr columns={columns} row={specialRow} />
           )}
-          {formData.category === "특수" && (
+          {/* {formData.category === "특수" && (
             <TdTr columns={columns} row={fileRow} />
-          )}
+          )} */}
           <TdTr columns={columns} row={dateRow} />
           <TdTr columns={columns} row={reasonRow} />
           <TdTr columns={columns} row={useRow} />

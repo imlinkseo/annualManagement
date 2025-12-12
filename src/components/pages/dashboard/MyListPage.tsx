@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import PageContainer from "@/components/container/PageContainer";
@@ -17,15 +17,15 @@ import { useMyVacationsStore } from "@/stores/myVacationStore";
 
 export default function MyListPage() {
   const { user } = useAuthStore();
-  const router = useRouter();
+  // const router = useRouter();
   const {
     employees,
-    loading: employeesLoading,
+    // loading: employeesLoading,
     refresh: refreshEmployees,
   } = useEmployeesStore();
   const {
     vacations,
-    loading: vacationsLoading,
+    // loading: vacationsLoading,
     refresh: refreshVacations,
   } = useMyVacationsStore();
 
@@ -54,25 +54,38 @@ export default function MyListPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    if (!employees.length && !employeesLoading) {
-      refreshEmployees();
-    }
-  }, [user?.id, employees.length, employeesLoading, refreshEmployees]);
+    refreshEmployees();
+  }, [user?.id, refreshEmployees]);
 
   useEffect(() => {
     if (!user?.id) return;
-    if (!vacations.length && !vacationsLoading) {
-      refreshVacations(user.id);
-    }
-  }, [user?.id, vacations.length, vacationsLoading, refreshVacations]);
+    refreshVacations(user.id);
+  }, [user?.id, refreshVacations]);
 
   const me: EmployeeType | null = useMemo(() => {
     if (!user?.id) return null;
     return employees.find((e) => e.user_id === user.id) ?? null;
   }, [employees, user?.id]);
 
+  const filteredVacations = useMemo(() => {
+    if (!me) return vacations;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { vacation_generated_date, vacation_expiry_date } = me as any;
+
+    if (!vacation_generated_date || !vacation_expiry_date) return vacations;
+
+    const start = new Date(vacation_generated_date as string);
+    const end = new Date(vacation_expiry_date as string);
+
+    return vacations.filter((v) => {
+      if (!v.start_date) return false;
+      const s = new Date(v.start_date as string);
+      return s >= start && s <= end;
+    });
+  }, [vacations, me]);
+
   function onMakeRow(status: Status) {
-    return vacations
+    return filteredVacations
       .filter((item) => item.status === status)
       .map((filtered, idx) => {
         const row = [
@@ -90,27 +103,7 @@ export default function MyListPage() {
       });
   }
 
-  const isPageLoading =
-    !user ||
-    (!me && employeesLoading) ||
-    (!vacations.length && vacationsLoading);
-
-  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
-  useEffect(() => {
-    console.log(user);
-    console.log(me);
-    console.log(vacations);
-    if (!isPageLoading) return;
-
-    const timer = setTimeout(() => {
-      // soft refresh (데이터 refetch용)
-      router.refresh();
-      // 만약 완전 새로고침이 더 안전하다면:
-      // window.location.reload();
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [isPageLoading, router]);
+  const isPageLoading = !user || !me || !employees || !vacations;
 
   if (isPageLoading) return <LoadingSpinner />;
 
