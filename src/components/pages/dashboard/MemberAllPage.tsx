@@ -34,8 +34,6 @@ export default function MemberAllPage() {
     { key: `vacation_total`, label: `총 갯수`, width: `w-[100px]` },
     { key: `vacation_used`, label: `사용 갯수`, width: `w-[100px]` },
     { key: `vacation_rest`, label: `잔여 갯수`, width: `w-[100px]` },
-    { key: `full_used_date`, label: `연차 사용 날짜`, width: `flex-1` },
-    { key: `half_used_date`, label: `반차 사용 날짜`, width: `flex-1` },
   ];
 
   useEffect(() => {
@@ -59,7 +57,13 @@ export default function MemberAllPage() {
 
       const row = Object.entries(item)
         .map(([key, value]) => {
-          if (key !== "created_at" && key !== "id" && key !== "user_id") {
+          if (
+            key !== "created_at" &&
+            key !== "id" &&
+            key !== "user_id" &&
+            key !== "full_used_date" &&
+            key !== "half_used_date"
+          ) {
             return {
               key,
               content: value === null ? `` : value.toString(),
@@ -77,7 +81,7 @@ export default function MemberAllPage() {
           columns={columns}
           row={row}
           isMe={isMe}
-          onClick={onLinkMyList}
+          onClick={isMe ? onLinkMyList : undefined}
         />
       );
     });

@@ -70,8 +70,16 @@ serve(async () => {
         vacationExpiryDate = new Date(joinedDate);
         vacationExpiryDate.setFullYear(vacationExpiryDate.getFullYear() + 1);
       } else {
-        // 입사 1년 이상: 15 + (근속연수 - 1)
-        expectedTotal = 15 + (diffYears - 1);
+        // 입사 1년 이상
+        // 만 3년 근로까지는 15개,
+        // 만 3년 초과분부터 2년마다 +1개 (4~5년차: 16, 6~7년차: 17, ...)
+        if (diffYears <= 3) {
+          expectedTotal = 15;
+        } else {
+          const extra = Math.floor((diffYears - 2) / 2); // 4,5년차 →1 / 6,7년차 →2 ...
+          expectedTotal = 15 + extra;
+        }
+
         vacationGeneratedDate.setFullYear(
           vacationGeneratedDate.getFullYear() + diffYears
         );

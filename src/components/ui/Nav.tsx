@@ -8,6 +8,7 @@ interface Props {
 
 const navItems = [
   { label: "전체 멤버", href: "/" },
+  { label: "멤버 관리", href: "/manageMember" },
   { label: "내 목록", href: "/myList" },
   { label: "전체 목록", href: "/listAll" },
   { label: "특수 연차 관리", href: "/manageSpecial" },
@@ -18,11 +19,17 @@ const Nav = ({ isAdmin }: Props) => {
   return (
     <nav className="flex items-center space-x-2">
       {isAdmin === true
-        ? navItems.map((item) => <LinkButton {...item} key={item.href} />)
+        ? navItems
+            // .filter(
+            //   (item) => item.label !== "내 목록" && item.label !== "작성하기"
+            // )
+            .map((item) => <LinkButton {...item} key={item.href} />)
         : navItems
             .filter(
               (item) =>
-                item.label !== "전체 목록" && item.label !== "특수 연차 관리"
+                item.label !== "전체 목록" &&
+                item.label !== "특수 연차 관리" &&
+                item.label !== "멤버 관리"
             )
             .map((item) => <LinkButton {...item} key={item.href} />)}
     </nav>

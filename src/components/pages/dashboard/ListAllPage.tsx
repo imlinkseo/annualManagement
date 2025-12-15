@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import PageContainer from "@/components/container/PageContainer";
 import PageTitle from "@/components/ui/PageTitle";
@@ -62,6 +62,9 @@ export default function ListAllPage() {
   const [refuseReason, setRefuseReason] = useState("");
   const { showToast } = useToast();
 
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelSelected, setCancelSelected] = useState<Vacation | null>(null);
+
   const styles = {
     ctn: `my-[80px] flex flex-col gap-[34px] w-[1600px]`,
     dateSectionCtn: `flex border-[1px] border-solid border-[#ddd] rounded-sm w-full justify-between p-[16px]`,
@@ -113,6 +116,17 @@ export default function ListAllPage() {
   }
 
   const filteredVacation = isFiltered ? filterByDate(vacation) : vacation;
+
+  const sortedVacation = useMemo(() => {
+    const getTime = (v: Vacation) => {
+      const start = v.start_date ? new Date(String(v.start_date)).getTime() : 0;
+      const end = v.end_date ? new Date(String(v.end_date)).getTime() : 0;
+      return Math.max(start, end);
+    };
+    return [...(filteredVacation ?? [])].sort(
+      (a, b) => getTime(b) - getTime(a)
+    );
+  }, [filteredVacation]);
 
   const DateSection = () => {
     function onClickSearchButton() {
@@ -186,6 +200,170 @@ export default function ListAllPage() {
     );
   };
 
+  function getDateRange(startStr?: string | null, endStr?: string | null) {
+    if (!startStr) return [];
+    const start = new Date(startStr);
+    const end = endStr ? new Date(endStr) : new Date(startStr);
+    const result: string[] = [];
+
+    const d = new Date(start);
+    while (d.getTime() <= end.getTime()) {
+      const mm = d.getMonth() + 1;
+      const dd = d.getDate();
+      result.push(`${mm}/${dd}`);
+      d.setDate(d.getDate() + 1);
+    }
+
+    return result;
+  }
+
+  function mergeDates(prev: string | null, dates: string[]) {
+    const prevArr = prev
+      ? prev
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : [];
+    const merged = Array.from(new Set([...prevArr, ...dates]));
+    return merged.join(",");
+  }
+
+  function removeDates(prev: string | null, dates: string[]) {
+    const prevArr = prev
+      ? prev
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : [];
+    const removeSet = new Set(dates.map((v) => v.trim()).filter(Boolean));
+    const next = prevArr.filter((d) => !removeSet.has(d));
+    return next.length ? next.join(",") : null;
+  }
+
+  async function applyApprovalEffects(item: Vacation) {
+    const dateNum =
+      item.date_num === undefined ? 0 : parseFloat(String(item.date_num));
+
+    const usedDates = getDateRange(
+      item.start_date ? String(item.start_date) : null,
+      item.end_date ? String(item.end_date) : null
+    );
+
+    const isHalf = item.type === "반차";
+
+    if (!(dateNum > 0)) return { ok: true as const };
+
+    const { data: emp, error: empErr } = await supabase
+      .from("employees")
+      .select("vacation_used, vacation_rest, full_used_date, half_used_date")
+      .eq("user_id", item.user_id)
+      .single();
+
+    if (empErr) return { ok: false as const, message: empErr.message };
+
+    const nextUsed = Number(emp.vacation_used ?? 0) + dateNum;
+    const nextRest = Number(emp.vacation_rest ?? 0) - dateNum;
+
+    let nextFullUsedDate = emp.full_used_date as string | null;
+    let nextHalfUsedDate = emp.half_used_date as string | null;
+
+    if (isHalf) {
+      nextHalfUsedDate = mergeDates(nextHalfUsedDate, usedDates);
+    } else {
+      nextFullUsedDate = mergeDates(nextFullUsedDate, usedDates);
+    }
+
+    const { error: updEmpErr } = await supabase
+      .from("employees")
+      .update({
+        vacation_used: nextUsed,
+        vacation_rest: nextRest,
+        full_used_date: nextFullUsedDate,
+        half_used_date: nextHalfUsedDate,
+      })
+      .eq("user_id", item.user_id);
+
+    if (updEmpErr) return { ok: false as const, message: updEmpErr.message };
+
+    return { ok: true as const };
+  }
+
+  async function rollbackEmployeeUsage(item: Vacation) {
+    const dateNum =
+      item.date_num === undefined ? 0 : parseFloat(String(item.date_num));
+    if (!(dateNum > 0)) return { ok: true as const };
+
+    const usedDates = getDateRange(
+      item.start_date ? String(item.start_date) : null,
+      item.end_date ? String(item.end_date) : null
+    );
+
+    const isHalf = item.type === "반차";
+
+    const { data: emp, error: empErr } = await supabase
+      .from("employees")
+      .select("vacation_used, vacation_rest, full_used_date, half_used_date")
+      .eq("user_id", item.user_id)
+      .single();
+
+    if (empErr) return { ok: false as const, message: empErr.message };
+
+    const nextUsed = Number(emp.vacation_used ?? 0) - dateNum;
+    const nextRest = Number(emp.vacation_rest ?? 0) + dateNum;
+
+    let nextFullUsedDate = emp.full_used_date as string | null;
+    let nextHalfUsedDate = emp.half_used_date as string | null;
+
+    if (isHalf) {
+      nextHalfUsedDate = removeDates(nextHalfUsedDate, usedDates);
+    } else {
+      nextFullUsedDate = removeDates(nextFullUsedDate, usedDates);
+    }
+
+    const { error: updEmpErr } = await supabase
+      .from("employees")
+      .update({
+        vacation_used: nextUsed < 0 ? 0 : nextUsed,
+        vacation_rest: nextRest,
+        full_used_date: nextFullUsedDate,
+        half_used_date: nextHalfUsedDate,
+      })
+      .eq("user_id", item.user_id);
+
+    if (updEmpErr) return { ok: false as const, message: updEmpErr.message };
+
+    return { ok: true as const };
+  }
+
+  async function onConfirmCancelProcessed() {
+    if (!cancelSelected) return;
+
+    const item = cancelSelected;
+
+    if (item.status === "승인") {
+      const r = await rollbackEmployeeUsage(item);
+      if (!r.ok) {
+        showToast(`취소(롤백) 실패: ${r.message}`);
+        return;
+      }
+    }
+
+    const { error: delErr } = await supabase
+      .from("vacation")
+      .delete()
+      .eq("id", item.id);
+
+    if (delErr) {
+      showToast(`삭제 실패: ${delErr.message}`);
+      return;
+    }
+
+    setVacation((prev) => prev.filter((v) => v.id !== item.id));
+    setCancelSelected(null);
+    setCancelOpen(false);
+    showToast("취소(삭제) 처리 되었습니다.");
+  }
+
   const WaitTable = () => {
     const columns: ThProps[] = [
       { key: `no`, label: `No`, width: `w-[100px]` },
@@ -200,48 +378,14 @@ export default function ListAllPage() {
       { key: `refuse`, label: `반려`, width: `w-[100px]` },
     ];
 
-    function getDateRange(startStr?: string | null, endStr?: string | null) {
-      if (!startStr) return [];
-      const start = new Date(startStr);
-      const end = endStr ? new Date(endStr) : new Date(startStr);
-      const result: string[] = [];
-
-      const d = new Date(start);
-      while (d.getTime() <= end.getTime()) {
-        const mm = d.getMonth() + 1;
-        const dd = d.getDate();
-        result.push(`${mm}/${dd}`);
-        d.setDate(d.getDate() + 1);
-      }
-
-      return result;
-    }
-
-    function mergeDates(prev: string | null, dates: string[]) {
-      const prevArr = prev
-        ? prev
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean)
-        : [];
-      const merged = Array.from(new Set([...prevArr, ...dates]));
-      return merged.join(",");
-    }
-
     async function onClickApprovalButton(item: Vacation) {
-      console.log(onClickApprovalButton);
-      const dateNum =
-        item.date_num === undefined ? 0 : parseFloat(String(item.date_num));
-
       const { data: updated, error: upErr } = await supabase
         .from("vacation")
-        .update({ status: "승인" })
+        .update({ status: "승인", refuse_reason: null })
         .eq("id", item.id)
         .eq("status", "대기")
-        .select("id, status")
+        .select("*")
         .maybeSingle();
-
-      console.log(updated);
 
       if (upErr) {
         showToast(`승인 실패: ${upErr.message}`);
@@ -252,57 +396,16 @@ export default function ListAllPage() {
         return;
       }
 
-      const usedDates = getDateRange(
-        item.start_date ? String(item.start_date) : null,
-        item.end_date ? String(item.end_date) : null
-      );
-
-      const isHalf = item.type === "반차";
-
-      if (dateNum > 0) {
-        const { data: emp, error: empErr } = await supabase
-          .from("employees")
-          .select(
-            "vacation_used, vacation_rest, full_used_date, half_used_date"
-          )
-          .eq("user_id", item.user_id)
-          .single();
-
-        if (empErr) {
-          showToast(`직원 정보 조회 실패: ${empErr.message}`);
-          return;
-        }
-
-        const nextUsed = Number(emp.vacation_used ?? 0) + dateNum;
-        const nextRest = Number(emp.vacation_rest ?? 0) - dateNum;
-
-        let nextFullUsedDate = emp.full_used_date as string | null;
-        let nextHalfUsedDate = emp.half_used_date as string | null;
-
-        if (isHalf) {
-          nextHalfUsedDate = mergeDates(nextHalfUsedDate, usedDates);
-        } else {
-          nextFullUsedDate = mergeDates(nextFullUsedDate, usedDates);
-        }
-
-        const { error: updEmpErr } = await supabase
-          .from("employees")
-          .update({
-            vacation_used: nextUsed,
-            vacation_rest: nextRest,
-            full_used_date: nextFullUsedDate,
-            half_used_date: nextHalfUsedDate,
-          })
-          .eq("user_id", item.user_id);
-
-        if (updEmpErr) {
-          showToast(`직원 연차 반영 실패: ${updEmpErr.message}`);
-          return;
-        }
+      const eff = await applyApprovalEffects(updated);
+      if (!eff.ok) {
+        showToast(`직원 연차 반영 실패: ${eff.message}`);
+        return;
       }
 
       setVacation((prev) =>
-        prev.map((v) => (v.id === item.id ? { ...v, status: "승인" } : v))
+        prev.map((v) =>
+          v.id === item.id ? ({ ...v, status: "승인" } as Vacation) : v
+        )
       );
       showToast("승인 처리되었습니다.");
     }
@@ -320,7 +423,7 @@ export default function ListAllPage() {
     }
 
     function onMakeRow() {
-      const list = filteredVacation.filter((item) => item.status === "대기");
+      const list = sortedVacation.filter((item) => item.status === "대기");
 
       const rows = list.map((filtered, idx) => {
         const row = [
@@ -399,7 +502,42 @@ export default function ListAllPage() {
       { key: `reason`, label: `사유`, width: `flex-1` },
       { key: `status`, label: `상태`, width: `flex-1` },
       { key: `refuse_reason`, label: `반려 사유`, width: `flex-1` },
+      { key: `cancel`, label: `취소/승인`, width: `w-[120px]` },
     ];
+
+    async function approveFromRefused(item: Vacation) {
+      const { data: updated, error: upErr } = await supabase
+        .from("vacation")
+        .update({ status: "승인", refuse_reason: null })
+        .eq("id", item.id)
+        .eq("status", "반려")
+        .select("*")
+        .maybeSingle();
+
+      if (upErr) {
+        showToast(`승인 실패: ${upErr.message}`);
+        return;
+      }
+      if (!updated) {
+        showToast("이미 처리된 신청서입니다.");
+        return;
+      }
+
+      const eff = await applyApprovalEffects(updated);
+      if (!eff.ok) {
+        showToast(`직원 연차 반영 실패: ${eff.message}`);
+        return;
+      }
+
+      setVacation((prev) =>
+        prev.map((v) =>
+          v.id === item.id
+            ? ({ ...v, status: "승인", refuse_reason: "" } as Vacation)
+            : v
+        )
+      );
+      showToast("승인 처리되었습니다.");
+    }
 
     function getNameByUserId(userId: string | number) {
       const found = employees.find(
@@ -408,8 +546,13 @@ export default function ListAllPage() {
       return found ? found.name : "";
     }
 
+    function onClickCancelRow(item: Vacation) {
+      setCancelSelected(item);
+      setCancelOpen(true);
+    }
+
     function onMakeRow() {
-      const list = filteredVacation.filter((item) => item.status !== "대기");
+      const list = sortedVacation.filter((item) => item.status !== "대기");
 
       const rows = list.map((filtered, idx) => {
         const row = [
@@ -443,6 +586,23 @@ export default function ListAllPage() {
               }
             })
             .filter((cell) => cell !== undefined),
+          {
+            key: "cancel",
+            content:
+              filtered.status === "승인" ? (
+                <Button
+                  variant="red"
+                  text="취소"
+                  onClick={() => onClickCancelRow(filtered)}
+                />
+              ) : (
+                <Button
+                  variant="green"
+                  text="승인"
+                  onClick={() => approveFromRefused(filtered)}
+                />
+              ),
+          },
         ];
 
         return <TdTr key={String(filtered.id)} columns={columns} row={row} />;
@@ -522,6 +682,7 @@ export default function ListAllPage() {
         />
         {onRenderTable(tabStatus)}
       </PageContainer>
+
       <Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -547,6 +708,41 @@ export default function ListAllPage() {
           value={refuseReason}
           onChange={(e) => setRefuseReason(e.currentTarget.value)}
         />
+      </Modal>
+
+      <Modal
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        title="처리된 신청서 취소"
+        actions={
+          <>
+            <Button
+              variant="white"
+              text="뒤로가기"
+              onClick={() => setCancelOpen(false)}
+            />
+            <Button
+              variant="red"
+              text="취소(삭제)"
+              onClick={onConfirmCancelProcessed}
+              className="px-[32px] py-[14px]"
+            />
+          </>
+        }
+      >
+        <div className="flex flex-col gap-2 text-[14px] text-neutral-700">
+          <div>
+            {cancelSelected?.status === "승인"
+              ? "승인된 신청서입니다. 취소 시 직원의 사용/잔여 연차 및 사용일자가 함께 롤백됩니다."
+              : "반려된 신청서입니다. 취소 시 신청서가 삭제됩니다."}
+          </div>
+          <div className="text-neutral-500">
+            <p>
+              대상: {cancelSelected?.start_date ?? ""} ~{" "}
+              {cancelSelected?.end_date ?? ""}
+            </p>
+          </div>
+        </div>
       </Modal>
     </>
   );

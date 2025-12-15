@@ -1,4 +1,5 @@
 "use client";
+
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +19,6 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { ThProps } from "@/components/table/Th";
 import TdTr from "@/components/table/TdTr";
 import Textarea from "@/components/ui/Textarea";
-// import SingleFileInput from "@/components/ui/SingleFileInput";
 import { getHolidaySetInRange, isWeekend } from "@/lib/krHolidays";
 import { useSpecialStore } from "@/stores/specialStore";
 
@@ -75,14 +75,17 @@ export default function WritePage() {
   const reCalc = (draft: formData): formData => {
     const start = draft.startDate as Date;
     const end = draft.endDate as Date;
+
     const normal =
       draft.type === "반차"
         ? isBusinessDay(start)
           ? 0.5
           : 0
         : countBusinessDays(start, end);
+
     const sp = draft.category === "특수" ? Number(draft.special_num || 0) : 0;
     const total = Math.max(0, Number(normal) - sp);
+
     return {
       ...draft,
       normal_num: Number(normal),
@@ -105,6 +108,7 @@ export default function WritePage() {
           ? { endDate: value }
           : {}),
       } as formData;
+
       return reCalc(next);
     });
   };
@@ -136,18 +140,12 @@ export default function WritePage() {
   }, [formData.startDate, formData.endDate, formData.type]);
 
   const handleSubmit = async () => {
-    console.log("✅ handleSubmit 클릭됨");
-
     try {
-      console.log("✅ uploadFormData 호출 직전", formData);
-      const res = await uploadFormData(formData);
-      console.log("✅ uploadFormData 응답", res);
-
+      await uploadFormData(formData);
       alert("신청서가 제출되었습니다.");
       router.push("/myList");
     } catch (e) {
-      console.log("❌ uploadFormData 내부 에러", e);
-      alert("제출 중 오류가 발생했습니다.");
+      alert("제출 중 오류가 발생했습니다." + e);
     }
   };
 
@@ -168,31 +166,41 @@ export default function WritePage() {
 
   const isPageLoading = !user || (specialsLoading && specials.length === 0);
 
-  // ✅ 로딩이 5초 이상 지속되면 자동 새로고침
   useEffect(() => {
     if (!isPageLoading) return;
 
     const timer = setTimeout(() => {
-      // soft refresh (데이터 refetch용)
       router.refresh();
-      // 만약 완전 새로고침이 더 안전하다면:
-      // window.location.reload();
     }, 5000);
 
     return () => clearTimeout(timer);
   }, [isPageLoading, router]);
 
-  if (isPageLoading) return <LoadingSpinner />;
+  const columnsMain: ThProps[] = useMemo(
+    () => [
+      { key: `title`, label: `제목`, width: `w-[140px]` },
+      { key: `node`, label: `내용`, width: `flex-1` },
+    ],
+    []
+  );
 
-  const MainTable = () => {
-    const columns: ThProps[] = useMemo(
-      () => [
-        { key: `title`, label: `제목`, width: `w-[140px]` },
-        { key: `node`, label: `내용`, width: `flex-1` },
-      ],
-      []
-    );
+  const columnsSide: ThProps[] = useMemo(
+    () => [
+      { key: `title`, label: `제목`, width: `w-[140px]` },
+      { key: `node`, label: `내용`, width: `w-[300px]` },
+    ],
+    []
+  );
 
+  const DROPDOWN_ITEMS_VALUE_LABEL = useMemo(
+    () =>
+      specials.map((item) => ({
+        [`${item.name}: ${item.num}일`]: String(item.num),
+      })),
+    [specials]
+  );
+
+  const renderMainTable = () => {
     const typeRow = [
       { key: `title`, content: `연/반차` },
       {
@@ -273,10 +281,6 @@ export default function WritePage() {
       },
     ];
 
-    const DROPDOWN_ITEMS_VALUE_LABEL = specials.map((item) => {
-      return { [`${item.name}: ${item.num}일`]: String(item.num) };
-    });
-
     const specialRow = [
       { key: `title`, content: `특수` },
       {
@@ -334,54 +338,29 @@ export default function WritePage() {
       },
     ];
 
-    // const fileRow = [
-    //   { key: `title`, content: `증빙` },
-    //   {
-    //     key: `node`,
-    //     content: (
-    //       <SingleFileInput
-    //         id="file"
-    //         name="file"
-    //         value={formData.file}
-    //         onChange={(v) => update("file", v)}
-    //         placeholder="선택된 파일 없음"
-    //       />
-    //     ),
-    //   },
-    // ];
-
     return (
       <TableContainer>
         <thead>
-          <ThTr columns={columns} className={cn(styles.th)} />
+          <ThTr columns={columnsMain} className={cn(styles.th)} />
         </thead>
         <tbody>
-          <TdTr columns={columns} row={typeRow} />
-          {formData.type === "반차" && <TdTr columns={columns} row={timeRow} />}
-          <TdTr columns={columns} row={categoryRow} />
-          {formData.category === "특수" && (
-            <TdTr columns={columns} row={specialRow} />
+          <TdTr columns={columnsMain} row={typeRow} />
+          {formData.type === "반차" && (
+            <TdTr columns={columnsMain} row={timeRow} />
           )}
-          {/* {formData.category === "특수" && (
-            <TdTr columns={columns} row={fileRow} />
-          )} */}
-          <TdTr columns={columns} row={dateRow} />
-          <TdTr columns={columns} row={reasonRow} />
-          <TdTr columns={columns} row={useRow} />
+          <TdTr columns={columnsMain} row={categoryRow} />
+          {formData.category === "특수" && (
+            <TdTr columns={columnsMain} row={specialRow} />
+          )}
+          <TdTr columns={columnsMain} row={dateRow} />
+          <TdTr columns={columnsMain} row={reasonRow} />
+          <TdTr columns={columnsMain} row={useRow} />
         </tbody>
       </TableContainer>
     );
   };
 
-  const SideTable = () => {
-    const columns: ThProps[] = useMemo(
-      () => [
-        { key: `title`, label: `제목`, width: `w-[140px]` },
-        { key: `node`, label: `내용`, width: `w-[300px]` },
-      ],
-      []
-    );
-
+  const renderSideTable = () => {
     if (!employee) return null;
 
     const rows = [
@@ -418,24 +397,26 @@ export default function WritePage() {
     return (
       <TableContainer className="w-auto">
         <thead>
-          <ThTr columns={columns} className={cn(styles.th)} />
+          <ThTr columns={columnsSide} className={cn(styles.th)} />
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <TdTr key={i} columns={columns} row={row} />
+            <TdTr key={i} columns={columnsSide} row={row} />
           ))}
         </tbody>
       </TableContainer>
     );
   };
 
+  if (isPageLoading) return <LoadingSpinner />;
+
   return (
     <PageContainer className={cn(styles.ctn)}>
       <PageTitle title="연차 신청서 작성" type="big" />
       <div className={cn(styles.formCtn)}>
         <div className={cn(styles.tableCtn)}>
-          <MainTable />
-          <SideTable />
+          {renderMainTable()}
+          {renderSideTable()}
         </div>
         <Button
           text="신청하기"

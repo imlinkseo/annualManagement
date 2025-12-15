@@ -40,6 +40,14 @@ export default function DatePicker({ disabled, selected, onSelect }: Props) {
           <PopoverPrimitive.Content
             sideOffset={8}
             className="z-[9999] min-w-[400px] rounded-md bg-white p-4 shadow-lg"
+            onInteractOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (!target) return;
+
+              if (target.closest("[data-radix-popper-content-wrapper]")) {
+                e.preventDefault();
+              }
+            }}
           >
             <Calendar
               mode="single"

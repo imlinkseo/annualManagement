@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -34,40 +36,46 @@ const DropDown = ({
       icon: `h-6 w-6 text-blue-700`,
     },
     menuContent: {
-      ctn: `max-h-[245px] min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto bg-white`,
+      ctn: `z-[100000] max-h-[245px] min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto bg-white`,
     },
     menuItem: {
       text: `group-hover:text-neutral-900 text-neutral-700`,
     },
   };
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger className={cn(styles.trigger.ctn, className)}>
-        {label}
-        {open ? (
-          <ChevronUpIcon className={cn(styles.trigger.icon)} />
-        ) : (
-          <ChevronDownIcon className={cn(styles.trigger.icon)} />
-        )}
+      <DropdownMenuTrigger asChild>
+        <button type="button" className={cn(styles.trigger.ctn, className)}>
+          <span>{label}</span>
+          {open ? (
+            <ChevronUpIcon className={cn(styles.trigger.icon)} />
+          ) : (
+            <ChevronDownIcon className={cn(styles.trigger.icon)} />
+          )}
+        </button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent className={cn(styles.menuContent.ctn)}>
         {items.map((item) => {
           const [key, value] = Object.entries(item)[0];
+          const isActive =
+            key === label || String(value) === String(currentValue);
+
           return (
             <DropdownMenuItem
-              key={key + id}
-              className={cn(
-                key === label || value === currentValue ? "bg-blue-50" : ""
-              )}
-              onClick={() => {
+              key={`${key}-${id}`}
+              className={cn(isActive && "bg-blue-50")}
+              onSelect={() => {
                 onChangeKey(key);
                 onChangeValue?.(value);
+                setOpen(false);
               }}
             >
               <p
                 className={cn(
                   styles.menuItem.text,
-                  (key === label || value === currentValue) && "text-blue-700"
+                  isActive && "text-blue-700"
                 )}
               >
                 {key}
